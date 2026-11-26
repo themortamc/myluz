@@ -18,7 +18,7 @@ def pagina(slug, titulo, cuerpo):
     return f"""<!doctype html>
 <html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow"><title>{titulo} · myluz</title>
-<link rel="icon" href="../../favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../../styles.css"></head>
+<link rel="icon" href="../../favicon.png" type="image/png"><link rel="stylesheet" href="../../styles.css"></head>
 <body class="legal-body">
 <div class="aviso">Borrador para el prototipo · revisar con el contador o abogado del negocio antes de publicar</div>
 <header class="top"><div class="w top-in"><a class="logo" href="../../"><span class="sol" aria-hidden="true"></span><span>my<b>luz</b></span></a>
