@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "myluz",
+  "compatibility_date": "2026-09-01",
+  // Prototipo estático: Cloudflare sirve la carpeta public/ tal cual.
+  "assets": { "directory": "./public", "not_found_handling": "single-page-application" }
+}

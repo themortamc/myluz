@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>myluz · prototipo de tienda online</title>
+<meta name="description" content="Prototipo de la tienda online de myluz con precios para público y mayoristas.">
+<meta name="theme-color" content="#1d1b16">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="aviso">Prototipo con productos de ejemplo · los pedidos no se envían</div>
+
+<header class="top">
+  <div class="w top-in">
+    <a class="logo" href="#" aria-label="myluz, inicio" data-ir="tienda"><span class="sol" aria-hidden="true"></span><span>my<b>luz</b></span></a>
+    <label class="buscar"><span class="sr">Buscar productos</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input id="q" type="search" placeholder="Buscar por nombre o código" autocomplete="off">
+    </label>
+    <div class="acc">
+      <button class="btn-g" id="btn-cuenta" type="button">Soy mayorista</button>
+      <button class="btn-carro" id="btn-carro" type="button" aria-label="Abrir carrito">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg>
+        <span id="carro-n" class="badge">0</span>
+      </button>
+    </div>
+  </div>
+  <nav class="w cats" id="cats" aria-label="Categorías"></nav>
+</header>
+
+<main id="vista-tienda">
+  <section class="w intro" id="intro"></section>
+  <section class="w barra">
+    <p id="conteo" aria-live="polite"></p>
+    <label class="orden">Ordenar
+      <select id="orden"><option value="rel">Relevancia</option><option value="asc">Menor precio</option><option value="desc">Mayor precio</option><option value="az">A–Z</option></select>
+    </label>
+  </section>
+  <section class="w grilla" id="grilla" aria-label="Productos"></section>
+</main>
+
+<main id="vista-panel" class="w panel" hidden>
+  <div class="panel-head"><h1>Panel del negocio <span class="pill">demo</span></h1><button class="btn-g" type="button" data-ir="tienda">Volver a la tienda</button></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="may">Mayoristas</button>
+    <button role="tab" aria-selected="false" data-tab="imp">Importar productos</button>
+    <button role="tab" aria-selected="false" data-tab="ped">Pedidos</button>
+  </div>
+  <section data-panel="may">
+    <p class="nota">Cada mayorista o revendedor se registra en la tienda. Desde acá lo aprobás y le ponés su descuento sobre el precio de lista.</p>
+    <div class="tabla" id="tabla-may"></div>
+  </section>
+  <section data-panel="imp" hidden>
+    <p class="nota">Subís el archivo que exporta el programa y se actualizan productos, precios y stock. Probá con un CSV con columnas: <code>codigo,nombre,categoria,precio,stock</code>.</p>
+    <label class="subir"><input type="file" id="csv" accept=".csv,text/csv"><span>Elegir archivo CSV</span></label>
+    <p id="imp-res" class="nota" aria-live="polite"></p>
+  </section>
+  <section data-panel="ped" hidden><div class="tabla" id="tabla-ped"></div></section>
+</main>
+
+<footer class="pie"><div class="w">myluz · Junín, Mendoza · <a href="#" data-ir="panel">Panel del negocio (demo)</a></div></footer>
+
+<aside class="cajon" id="cajon" aria-label="Carrito" hidden>
+  <div class="cajon-in">
+    <div class="cajon-head"><h2>Tu pedido</h2><button class="x" type="button" data-cerrar aria-label="Cerrar">×</button></div>
+    <div id="carro-items" class="carro-items"></div>
+    <div id="carro-pie" class="carro-pie"></div>
+  </div>
+</aside>
+
+<dialog id="dlg-cuenta" aria-label="Cuenta mayorista"></dialog>
+<dialog id="dlg-checkout" aria-label="Finalizar compra"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
