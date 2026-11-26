@@ -29,7 +29,7 @@ def pagina(slug, titulo, cuerpo):
 <p class="nota">Última actualización: {n['actualizado']}</p>
 {cuerpo}
 <nav class="legal-nav" aria-label="Otros textos legales">
-<a href="../terminos/">Términos y condiciones</a><a href="../privacidad/">Privacidad</a><a href="../cambios-y-devoluciones/">Cambios, devoluciones y garantía</a><a href="../mayoristas/">Condiciones para mayoristas</a><a href="../arrepentimiento/">Botón de arrepentimiento</a>
+<a href="../terminos/">Términos y condiciones</a><a href="../privacidad/">Privacidad</a><a href="../cambios-y-devoluciones/">Cambios, devoluciones y garantía</a><a href="../revendedores/">Condiciones para revendedores</a><a href="../arrepentimiento/">Botón de arrepentimiento</a>
 </nav>
 </main>
 <footer class="pie"><div class="w"><p>{html.escape(n['razon'])} · CUIT {html.escape(n['cuit'])} · {html.escape(n['domicilio'])}</p>
@@ -55,8 +55,8 @@ PAGINAS = {
 <p>Hacemos envíos a toda la provincia de Mendoza por Correo Argentino. El costo y el plazo estimado se informan antes de confirmar la compra. Los plazos del correo son estimados y pueden variar por causas ajenas a myluz. También podés retirar tu pedido en el local, en el horario de atención, cuando te avisemos que está listo.</p>
 <h2>8. Derecho de arrepentimiento</h2>
 <p>Si comprás como consumidor, podés revocar la compra dentro de los 10 días corridos desde que recibiste el producto, sin dar explicaciones (art. 34 de la Ley 24.240 y art. 1110 del Código Civil y Comercial). Podés hacerlo desde el <a href="../arrepentimiento/">botón de arrepentimiento</a>. Más detalle en <a href="../cambios-y-devoluciones/">cambios y devoluciones</a>.</p>
-<h2>9. Cuentas de mayoristas y revendedores</h2>
-<p>Las cuentas mayoristas tienen condiciones propias, que se detallan en <a href="../mayoristas/">condiciones para mayoristas</a>.</p>
+<h2>9. Cuentas de revendedores</h2>
+<p>Las cuentas de revendedor tienen condiciones propias, que se detallan en <a href="../revendedores/">condiciones para revendedores</a>.</p>
 <h2>10. Uso del sitio</h2>
 <p>No está permitido usar el sitio para fines ilícitos, intentar acceder a cuentas de otras personas, alterar su funcionamiento ni copiar su contenido para fines comerciales sin autorización. Los textos, fotos propias, marcas y diseño del sitio pertenecen a myluz o a sus respectivos titulares.</p>
 <h2>11. Responsabilidad</h2>
@@ -71,7 +71,7 @@ PAGINAS = {
 <p>{N['razon']}, CUIT {N['cuit']}, con domicilio en {N['domicilio']}, es responsable de la base de datos de clientes de myluz. Contacto: {N['contacto']}.</p>
 <h2>2. Qué datos pedimos y para qué</h2>
 <ul><li><b>Para tu pedido:</b> nombre, teléfono, mail y dirección de entrega. Los usamos para preparar, enviar y avisarte sobre tu compra.</li>
-<li><b>Para cuentas mayoristas:</b> nombre del negocio, CUIT, mail y teléfono, para verificar y aprobar la cuenta.</li>
+<li><b>Para cuentas de revendedor:</b> nombre del negocio, CUIT, mail y teléfono, para verificar y aprobar la cuenta.</li>
 <li><b>Datos de pago:</b> los pagos con tarjeta se hacen en Mercado Pago; nosotros no recibimos ni guardamos los datos de tu tarjeta.</li></ul>
 <p>No vendemos ni cedemos tus datos. Solo los compartimos con quienes nos ayudan a darte el servicio (por ejemplo, el correo que entrega tu pedido o el proveedor de pagos), y solo lo necesario para eso.</p>
 <h2>3. Cuánto tiempo los guardamos</h2>
@@ -94,15 +94,15 @@ PAGINAS = {
 <h2>Productos que llegaron dañados o incompletos</h2>
 <p>Revisá el paquete al recibirlo. Si llegó dañado o falta algo, avisanos dentro de las 48 horas con fotos y lo resolvemos.</p>
 """),
-"mayoristas": ("Condiciones para mayoristas y revendedores", f"""
+"revendedores": ("Condiciones para revendedores", f"""
 <h2>1. Registro y aprobación</h2>
-<p>Los precios mayoristas son para comercios y revendedores. Para acceder tenés que registrarte con los datos de tu negocio (incluido el CUIT). myluz revisa cada solicitud y puede aprobarla o rechazarla. Hasta que la cuenta esté aprobada, vas a ver los precios para público.</p>
-<h2>2. Precios mayoristas</h2>
-<p>El precio mayorista de cada cuenta puede ser distinto según las condiciones comerciales acordadas. Los precios pueden cambiar sin aviso; se respeta el vigente al confirmar el pedido. [COMPLETAR: si los precios mayoristas incluyen o no IVA.]</p>
+<p>Los precios de revendedor son para comercios y revendedores. Para acceder tenés que registrarte con los datos de tu negocio (incluido el CUIT). myluz revisa cada solicitud y puede aprobarla o rechazarla. Hasta que la cuenta esté aprobada, vas a ver los precios para público.</p>
+<h2>2. Precios de revendedor</h2>
+<p>El precio de revendedor de cada cuenta puede ser distinto según las condiciones comerciales acordadas. Los precios pueden cambiar sin aviso; se respeta el vigente al confirmar el pedido. [COMPLETAR: si los precios de revendedor incluyen o no IVA.]</p>
 <h2>3. Compra mínima</h2>
-<p>Los pedidos mayoristas tienen un monto mínimo, que se informa en el carrito. [COMPLETAR: monto o cantidad mínima.]</p>
+<p>Los pedidos de revendedores tienen un monto mínimo, que se informa en el carrito. [COMPLETAR: monto o cantidad mínima.]</p>
 <h2>4. Uso de la cuenta</h2>
-<p>La cuenta es personal del negocio registrado. No se pueden compartir el usuario ni los precios mayoristas con terceros. myluz puede suspender o dar de baja una cuenta si se usa en forma indebida o si los datos no son correctos.</p>
+<p>La cuenta es personal del negocio registrado. No se pueden compartir el usuario ni los precios de revendedor con terceros. myluz puede suspender o dar de baja una cuenta si se usa en forma indebida o si los datos no son correctos.</p>
 <h2>5. Compras para reventa</h2>
 <p>Las compras hechas para revender o para integrar a tu actividad comercial no tienen derecho de arrepentimiento (Disposición 954/2025), pero sí garantía por defectos de fabricación.</p>
 """),

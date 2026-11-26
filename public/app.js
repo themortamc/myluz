@@ -15,8 +15,8 @@ const guardar = (k, v) => { try { localStorage.setItem("myluz:" + k, JSON.string
 const leer = (k, def) => { try { return JSON.parse(localStorage.getItem("myluz:" + k)) ?? def; } catch { return def; } };
 
 // Mayoristas de ejemplo (el panel los aprueba y les pone su descuento)
-let mayoristas = leer("mayoristas", [
-  { id: 1, nombre: "Distribuidora Andes", email: "mayorista@demo.com", cuit: "30-00000000-1", estado: "aprobado", desc: 25 },
+let mayoristas = leer("revendedores", [
+  { id: 1, nombre: "Distribuidora Andes", email: "revendedor@demo.com", cuit: "30-00000000-1", estado: "aprobado", desc: 25 },
   { id: 2, nombre: "Kiosco El Sol", email: "kiosco@demo.com", cuit: "20-00000000-2", estado: "aprobado", desc: 30 },
   { id: 3, nombre: "Bazar La Esquina", email: "bazar@demo.com", cuit: "27-00000000-3", estado: "pendiente", desc: 25 },
 ]);
@@ -38,7 +38,7 @@ const catDe = (id) => window.CATEGORIAS.find((c) => c.id === id) || { nombre: id
 const pctTransf = Math.round(window.Precio.DESCUENTO * 100);
 function precios(p) {
   const m = cliente();
-  if (m) return { tachado: p.precio, final: p.precio * (1 - m.desc / 100), tarjeta: p.precio * (1 - m.desc / 100), etiqueta: `-${m.desc}% mayorista`, may: true };
+  if (m) return { tachado: p.precio, final: p.precio * (1 - m.desc / 100), tarjeta: p.precio * (1 - m.desc / 100), etiqueta: `-${m.desc}% revendedor`, may: true };
   const lista = window.Precio.precioLista(p.precio);
   return { tachado: null, final: p.precio, tarjeta: lista, cuota: window.Precio.valorCuota(lista), etiqueta: null, may: false };
 }
@@ -57,23 +57,23 @@ function pintarCats() {
 function pintarIntro() {
   const m = cliente();
   $("#intro").innerHTML = m
-    ? `<div class="hero may"><div class="hero-txt"><span class="eyebrow">Cuenta mayorista</span><h1>Hola, ${esc(m.nombre)}</h1>
-       <p>Estás viendo tus precios mayoristas en toda la tienda. Compra mínima: ${pesos(CONFIG.minimoMayorista)}.</p>
+    ? `<div class="hero may"><div class="hero-txt"><span class="eyebrow">Cuenta de revendedor</span><h1>Hola, ${esc(m.nombre)}</h1>
+       <p>Estás viendo tus precios de revendedor en toda la tienda. Compra mínima: ${pesos(CONFIG.minimoMayorista)}.</p>
        <div class="chips"><span class="chip may">Tu descuento: ${m.desc}% sobre lista</span><span class="chip">Envíos a toda Mendoza</span></div></div></div>`
     : `<div class="hero"><div class="hero-txt"><span class="eyebrow">Multirubro en Junín, Mendoza</span>
        <h1>Todo para tu casa,<br>en un solo lugar</h1>
        <p>Bazar, perfumería, zapatería, librería, juguetería y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
-       <div class="hero-cta"><a class="btn-p" href="#grilla">Ver productos</a><button class="btn-l" type="button" id="btn-may-hero">Soy mayorista o revendedor</button></div></div>
+       <div class="hero-cta"><a class="btn-p" href="#grilla">Ver productos</a><button class="btn-l" type="button" id="btn-may-hero">Soy revendedor</button></div></div>
        <ul class="beneficios">
          <li><b>Envíos a toda Mendoza</b><span>Por Correo Argentino</span></li>
          <li><b>Retiro en el local</b><span>Junín, Mendoza</span></li>
          <li><b>3 cuotas sin interés</b><span>o ${pctTransf}% off con transferencia o efectivo</span></li>
-         <li><b>Precios mayoristas</b><span>Con cuenta aprobada</span></li>
+         <li><b>Precios para revendedores</b><span>Con cuenta aprobada</span></li>
        </ul></div>
        <h2 class="titulo">Comprá por categoría</h2>
        <div class="cat-tiles">${window.CATEGORIAS.map((c) => { const p = productos.find((x) => x.codigo === c.foto) || productos.find((x) => x.categoria === c.id);
          return `<button type="button" class="tile" data-cat="${c.id}">${p ? `<img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450">` : ""}<span>${esc(c.nombre)}</span></button>`; }).join("")}</div>`;
-  $("#btn-cuenta").textContent = m ? m.nombre.split(" ")[0] + " · salir" : "Soy mayorista";
+  $("#btn-cuenta").textContent = m ? m.nombre.split(" ")[0] + " · salir" : "Soy revendedor";
   $("#btn-cuenta").classList.toggle("may", !!m);
 }
 
@@ -92,7 +92,7 @@ function tarjeta(p) {
       <a class="foto" href="${url}" style="background:${c.color}" tabindex="-1" aria-hidden="true"><img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450">
         ${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}${sin ? `<em class="sin">Sin stock</em>` : ""}</a>
       <div class="info"><span class="cod">${esc(c.nombre)}${!sin && p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom"><a href="${url}">${esc(p.nombre)}</a></h3>
-        <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio">${pesos(pr.final)}</div><div class="sub">Precio mayorista</div>` : preciosPublico(pr)}</div>
+        <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio">${pesos(pr.final)}</div><div class="sub">Precio de revendedor</div>` : preciosPublico(pr)}</div>
         <button class="add" type="button" data-add="${esc(p.codigo)}" ${sin ? "disabled" : ""} aria-label="Agregar ${esc(p.nombre)}">${sin ? "Sin stock" : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar`}</button></div>
     </article>`;
 }
@@ -109,7 +109,7 @@ function pintarFicha(cod) {
       <div class="ficha-info">
         <span class="cod">${esc(c.nombre)} · Cód. ${esc(p.codigo)}</span>
         <h1>${esc(p.nombre)}</h1>
-        <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio grande">${pesos(pr.final)}</div><div class="sub">Tu precio mayorista</div>` : preciosPublico(pr, true)}</div>
+        <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio grande">${pesos(pr.final)}</div><div class="sub">Tu precio de revendedor</div>` : preciosPublico(pr, true)}</div>
         <p class="disp ${sin ? "no" : p.stock < 5 ? "pocas" : "si"}">${sin ? "Sin stock por ahora" : p.stock < 5 ? `Quedan ${p.stock} unidades` : "Disponible"}</p>
         ${sin ? "" : `<div class="comprar"><div class="qty grande" role="group" aria-label="Cantidad"><button type="button" data-cant="-1" aria-label="Restar uno">−</button><output id="cant">1</output><button type="button" data-cant="1" aria-label="Sumar uno">+</button></div>
           <button class="cta" type="button" data-add-ficha="${esc(p.codigo)}">Agregar al pedido</button></div>`}
@@ -152,11 +152,11 @@ function pintarCarro() {
   const falta = m && t.final < CONFIG.minimoMayorista;
   $("#carro-pie").innerHTML = t.items.length ? `
     ${m ? `<div class="fila"><span>Precio de contado</span><span class="tachado">${pesos(t.lista)}</span></div>` : ""}
-    ${m ? `<div class="fila total"><span>Total mayorista</span><span>${pesos(t.final)}</span></div>`
+    ${m ? `<div class="fila total"><span>Total revendedor</span><span>${pesos(t.final)}</span></div>`
       : `<div class="fila total"><span>Total con tarjeta</span><span>${pesos(t.tarjeta)}</span></div>
     <div class="fila"><span>${window.Precio.CUOTAS} cuotas sin interés de</span><span>${pesos(window.Precio.valorCuota(t.tarjeta))}</span></div>
     <div class="fila contado"><span>Con transferencia o efectivo (${pctTransf}% off)</span><b>${pesos(t.final)}</b></div>`}
-    ${falta ? `<div class="alerta">Te faltan ${pesos(CONFIG.minimoMayorista - t.final)} para la compra mínima mayorista.</div>` : ""}
+    ${falta ? `<div class="alerta">Te faltan ${pesos(CONFIG.minimoMayorista - t.final)} para la compra mínima para revendedores.</div>` : ""}
     <button class="cta" type="button" id="ir-checkout" ${falta ? "disabled" : ""}>Finalizar compra</button>` : "";
   guardar("carro", carro);
 }
@@ -166,14 +166,14 @@ function abrirCarro(v) { $("#cajon").hidden = !v; }
 function dlgCuenta(modo = "ingresar") {
   const d = $("#dlg-cuenta");
   d.innerHTML = `<form class="dlg" method="dialog">
-    <h2>Mayoristas y revendedores</h2>
+    <h2>Revendedores</h2>
     <div class="seg" role="tablist"><button type="button" role="tab" data-modo="ingresar" aria-selected="${modo === "ingresar"}">Ingresar</button><button type="button" role="tab" data-modo="registro" aria-selected="${modo === "registro"}">Registrarme</button></div>
     ${modo === "ingresar" ? `
       <label class="campo">Email<input name="email" type="email" required autocomplete="email"></label>
       <label class="campo">Contraseña<input name="pass" type="password" required autocomplete="current-password"></label>
-      <p class="demo">Demo: <b>mayorista@demo.com</b> con cualquier contraseña.</p>
+      <p class="demo">Demo: <b>revendedor@demo.com</b> con cualquier contraseña.</p>
       <button class="cta" value="ingresar">Ingresar</button>`
-    : `<p>Completá tus datos. El negocio revisa tu cuenta y, cuando la aprueba, ves los precios mayoristas.</p>
+    : `<p>Completá tus datos. El negocio revisa tu cuenta y, cuando la aprueba, ves tus precios de revendedor.</p>
       <label class="campo">Nombre del negocio<input name="nombre" required></label>
       <label class="campo">CUIT<input name="cuit" required inputmode="numeric"></label>
       <label class="campo">Email<input name="email" type="email" required></label>
@@ -190,10 +190,10 @@ function dlgCuenta(modo = "ingresar") {
       const m = mayoristas.find((x) => x.email.toLowerCase() === datos.email.trim().toLowerCase());
       if (!m) return toast("No encontramos esa cuenta");
       if (m.estado !== "aprobado") return toast("Tu cuenta todavía está pendiente de aprobación");
-      sesion = m.id; guardar("sesion", sesion); d.close(); refrescar(); toast("Ahora ves tus precios mayoristas");
+      sesion = m.id; guardar("sesion", sesion); d.close(); refrescar(); toast("Ahora ves tus precios de revendedor");
     } else {
       mayoristas.push({ id: Date.now(), nombre: datos.nombre, email: datos.email, cuit: datos.cuit, estado: "pendiente", desc: CONFIG.descMayorista * 100 });
-      guardar("mayoristas", mayoristas); d.close(); toast("¡Listo! Te avisamos cuando aprobemos tu cuenta");
+      guardar("revendedores", mayoristas); d.close(); toast("¡Listo! Te avisamos cuando aprobemos tu cuenta");
     }
   });
 }
@@ -297,7 +297,7 @@ function pintarPanel() {
     <span class="sub">${esc(m.email)} · CUIT ${esc(m.cuit)}</span></div>`).join("");
   const ped = leer("pedidos", []);
   $("#tabla-ped").innerHTML = ped.length ? ped.map((p) => `<div class="reg"><b>${esc(p.num)} · ${esc(p.nombre)}</b><div class="der"><b>${pesos(p.total)}</b></div>
-    <span class="sub">${p.may ? "Mayorista" : "Minorista"} · ${p.pago === "transf" ? "Transferencia" : "Tarjeta"} · ${p.entrega === "retiro" ? "Retiro en local" : `Correo Argentino ${pesos(p.envio || 0)}`}</span></div>`).join("")
+    <span class="sub">${p.may ? "Revendedor" : "Minorista"} · ${p.pago === "transf" ? "Transferencia" : "Tarjeta"} · ${p.entrega === "retiro" ? "Retiro en local" : `Correo Argentino ${pesos(p.envio || 0)}`}</span></div>`).join("")
     : `<p class="nota">Todavía no hay pedidos. Hacé uno de prueba en la tienda.</p>`;
 }
 
@@ -340,17 +340,17 @@ document.addEventListener("click", (e) => {
   else if (b.hasAttribute("data-cerrar")) abrirCarro(false);
   else if (b.id === "ir-checkout") dlgCheckout();
   else if (b.id === "btn-may-hero" || b.id === "btn-may-pie") dlgCuenta();
-  else if (b.id === "btn-cuenta") { if (cliente()) { sesion = null; guardar("sesion", null); refrescar(); toast("Saliste de la cuenta mayorista"); } else dlgCuenta(); }
+  else if (b.id === "btn-cuenta") { if (cliente()) { sesion = null; guardar("sesion", null); refrescar(); toast("Saliste de tu cuenta de revendedor"); } else dlgCuenta(); }
   else if (b.dataset.modo) dlgCuenta(b.dataset.modo);
   else if (b.hasAttribute("data-cerrar-dlg")) b.closest("dialog").close();
   else if (b.dataset.ir) { e.preventDefault(); history.replaceState(null, "", b.dataset.ir === "panel" ? "#panel" : location.pathname); ir(b.dataset.ir); }
   else if (b.dataset.tab) { $$(".tabs button").forEach((x) => x.setAttribute("aria-selected", x === b)); $$("[data-panel]").forEach((s) => (s.hidden = s.dataset.panel !== b.dataset.tab)); }
-  else if (b.dataset.aprobar) { const m = mayoristas.find((x) => x.id == b.dataset.aprobar); m.estado = "aprobado"; guardar("mayoristas", mayoristas); pintarPanel(); toast(`${m.nombre} ya ve precios mayoristas`); }
+  else if (b.dataset.aprobar) { const m = mayoristas.find((x) => x.id == b.dataset.aprobar); m.estado = "aprobado"; guardar("revendedores", mayoristas); pintarPanel(); toast(`${m.nombre} ya ve sus precios de revendedor`); }
 });
 $("#cajon").addEventListener("click", (e) => { if (e.target.id === "cajon") abrirCarro(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") abrirCarro(false); });
 document.addEventListener("change", (e) => {
-  if (e.target.dataset.pct) { const m = mayoristas.find((x) => x.id == e.target.dataset.pct); m.desc = Math.max(0, Math.min(80, Number(e.target.value) || 0)); guardar("mayoristas", mayoristas); toast(`Descuento de ${m.nombre}: ${m.desc}%`); }
+  if (e.target.dataset.pct) { const m = mayoristas.find((x) => x.id == e.target.dataset.pct); m.desc = Math.max(0, Math.min(80, Number(e.target.value) || 0)); guardar("revendedores", mayoristas); toast(`Descuento de ${m.nombre}: ${m.desc}%`); }
   if (e.target.dataset.vis) {
     const c = e.target.dataset.vis; e.target.checked ? ocultos.delete(c) : ocultos.add(c);
     guardar("ocultos", [...ocultos]); delete carro[c]; pintarProductosPanel(); pintarGrilla(); pintarCarro();
