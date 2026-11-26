@@ -196,8 +196,8 @@ a.btn-g{text-decoration:none;color:var(--ink)}
 .fila.contado{color:var(--ok)}
 .precio.grande+.cuotas{font-size:15px}.precio.grande~.contado{font-size:16px}.precio.grande~.contado b{font-size:20px}
 .logo-img{width:44px;height:44px;border-radius:50%;background:#fff;flex:none}
-/* Marca del negocio (2026-11-26): rojo del logo (#c2081b). La palabra "Myluz" es la del logo recortada (img/marca*.webp). */
-:root{--acc:#c2081b;--acc-ink:#a30616;--acc-soft:#fde7e9;--rojo-osc:#7d0511}
+/* Marca del negocio (2026-11-26): rojo del logo apagado (#a8252f). La palabra "Myluz" es la del logo recortada (img/marca*.webp). */
+:root{--acc:#a8252f;--acc-ink:#8c1f28;--acc-soft:#f7e6e7;--rojo-osc:#5c1a1f}
 .marca-img{height:44px;width:auto;display:block}
 .aviso{background:var(--rojo-osc);color:#fff}
 .btn-carro,.add,.cta,.mini{background:var(--acc);color:#fff}
@@ -206,7 +206,7 @@ a.btn-g{text-decoration:none;color:var(--ink)}
 .badge{background:#fff;color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
 .btn-p{background:var(--acc);color:#fff}
 .hero{background:var(--acc-ink)}
-.hero::before{background:radial-gradient(circle,rgba(255,120,130,.45),rgba(255,120,130,0) 65%)}
+.hero::before{background:radial-gradient(circle,rgba(255,170,170,.25),rgba(255,170,170,0) 65%)}
 .hero .eyebrow{color:#ffd3d8}
 .hero .btn-p{background:#fff;color:var(--acc-ink)}
 .pie{background:var(--rojo-osc);color:#f6d6da}
