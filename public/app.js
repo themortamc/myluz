@@ -130,8 +130,9 @@ function totales() {
   return { items, lista, final, cant: items.reduce((s, i) => s + i.n, 0) };
 }
 
+// Peso estimado por nombre y categoría (public/peso.js). Si un producto trae peso cargado, manda ese.
 function itemsEnvio(t) {
-  return t.items.map(({ p, n }) => { const e = (window.ENVIO || {})[p.codigo] || {}; return { quantity: n, weightKg: e.kg, lengthCm: e.l, widthCm: e.a, heightCm: e.h }; });
+  return t.items.map(({ p, n }) => ({ quantity: n, weightKg: p.peso || window.Peso.pesoEstimadoKg(p.nombre, p.categoria) }));
 }
 
 function pintarCarro() {
@@ -232,7 +233,7 @@ function dlgCheckout() {
         cotizacion = window.Envio.cotizarMendoza(cp, itemsEnvio(t));
         $("#p-dom", d).textContent = pesos(cotizacion.domicilio);
         $("#p-suc", d).textContent = pesos(cotizacion.sucursal);
-        $("#envio-msg", d).textContent = `Peso del paquete: ${String(cotizacion.weightKg).replace(".", ",")} kg · tarifa de Correo Argentino (${window.Envio.RATES_UPDATED_AT}).`;
+        $("#envio-msg", d).textContent = `Costo estimado para un paquete de unos ${String(cotizacion.weightKg).replace(".", ",")} kg, con la tarifa de Correo Argentino (${window.Envio.RATES_UPDATED_AT}).`;
       } catch (err) { $("#envio-msg", d).textContent = err.message; }
     } else if (correo) $("#envio-msg", d).textContent = "Escribí tu código postal para calcular el envío.";
     $("#envio-ops", d).hidden = !cotizacion;

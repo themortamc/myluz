@@ -100,16 +100,3 @@ window.DESCRIPCIONES = {
 };
 window.PRODUCTOS.forEach((p) => { p.descripcion = window.DESCRIPCIONES[p.codigo] || ""; });
 
-// Peso del paquete embalado (kg) y medidas (cm) para el envío. EJEMPLO: en la tienda real salen
-// del programa o se cargan en el panel. Los voluminosos llevan medidas porque Correo cobra el
-// peso volumétrico si es mayor que el real.
-window.ENVIO = {
-  "BZ-1001": { kg: 2 }, "BZ-1002": { kg: 2 }, "BZ-1003": { kg: 1.5 }, "BZ-1004": { kg: 1 }, "BZ-1005": { kg: 1 },
-  "PF-9001": { kg: 0.5 }, "PF-9002": { kg: 0.5 }, "PF-9003": { kg: 0.6 }, "PF-9004": { kg: 0.3 }, "PF-9005": { kg: 1 }, "PF-9006": { kg: 1 },
-  "ZA-9201": { kg: 1 }, "ZA-9202": { kg: 1 }, "ZA-9203": { kg: 0.5 }, "ZA-9204": { kg: 0.5 }, "ZA-9205": { kg: 1 },
-  "LI-4001": { kg: 0.5 }, "LI-4002": { kg: 0.5 }, "LI-4003": { kg: 2.5 }, "LI-4004": { kg: 1 }, "LI-4005": { kg: 0.3 },
-  "JU-5001": { kg: 0.6 }, "JU-5002": { kg: 1 }, "JU-5003": { kg: 0.6 }, "JU-5004": { kg: 1.5 }, "JU-5005": { kg: 1.5 },
-  "EL-6001": { kg: 0.5 }, "EL-6002": { kg: 0.3 }, "EL-6003": { kg: 1 }, "EL-6004": { kg: 0.2 }, "EL-6005": { kg: 1.5 },
-  "LM-7001": { kg: 2.2 }, "LM-7002": { kg: 0.9 }, "LM-7003": { kg: 1.5, l: 120, a: 25, h: 6 }, "LM-7004": { kg: 0.3 }, "LM-7005": { kg: 1.5, l: 35, a: 35, h: 30 },
-  "RG-8001": { kg: 0.6 }, "RG-8002": { kg: 0.6 }, "RG-8003": { kg: 0.6 }, "RG-8004": { kg: 0.8 }, "RG-8005": { kg: 1 },
-};

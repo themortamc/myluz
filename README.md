@@ -25,7 +25,7 @@
 | 🔐 **Mayoristas y revendedores** | Se registran, el negocio los aprueba y, al entrar, ven **su** precio en la misma tienda. Compra mínima configurable. |
 | 🎚️ **Panel del negocio** | Con usuario y contraseña: ocultar o mostrar productos, aprobar mayoristas y ponerle a cada uno su descuento, ver pedidos. |
 | 📦 **Importación desde el programa del negocio** | Se sube el archivo exportado (CSV) y se actualizan productos, precios y stock. |
-| 🚚 **Envío calculado** | Costo de Correo Argentino a domicilio o a sucursal según código postal, peso y medidas (peso volumétrico incluido). Mismo motor que una tienda en producción, con pruebas automáticas. Retiro en el local sin costo. |
+| 🚚 **Envío calculado** | Costo de Correo Argentino a domicilio o a sucursal según código postal y el peso estimado del paquete (se calcula solo por nombre y categoría; nadie tiene que cargar pesos). Mismo motor que una tienda en producción, con pruebas automáticas. Retiro en el local sin costo. |
 | 💳 **Pago** | Transferencia o tarjeta (Mercado Pago). |
 | ⚖️ **Legales argentinos** | Términos y condiciones, privacidad (Ley 25.326), cambios y garantía, condiciones para mayoristas, botón de arrepentimiento y enlace a Defensa del Consumidor. |
 | 📱 **Pensada para el celular** | Se usa cómoda con una mano; anda igual en la compu. |
@@ -61,6 +61,7 @@ public/
 ├── styles.css   # diseño (mobile first)
 ├── app.js       # catálogo, precios, carrito, cuentas mayoristas y panel
 ├── envio.js     # cálculo de envío de Correo Argentino (probado en tests/)
+├── peso.js      # peso estimado de cada producto por nombre y categoría
 ├── data.js      # productos y descripciones de EJEMPLO
 ├── legales/     # páginas legales (se generan con tools/legales.py)
 ├── img/p/       # fotos de ejemplo (Pixabay, ver docs/CREDITOS.md)

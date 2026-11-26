@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Tienda online de myluz (prototipo).",
   "scripts": {
-    "check": "node --check public/app.js && node --check public/data.js && node --check public/envio.js && node --test tests/",
+    "check": "node --check public/app.js && node --check public/data.js && node --check public/envio.js && node --check public/peso.js && node --test tests/",
     "dev": "npx --yes wrangler@4 dev",
     "deploy": "npm run check && npx --yes wrangler@4 deploy",
     "test": "node --test tests/"
