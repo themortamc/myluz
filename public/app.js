@@ -24,6 +24,10 @@ let productos = window.PRODUCTOS.slice();
 let carro = leer("carro", {});
 let sesion = leer("sesion", null); // id de mayorista logueado
 let filtro = { cat: "todas", q: "", orden: "rel" };
+// shortcut: login de muestra en el navegador (el prototipo no tiene datos reales); en la tienda real va con Supabase Auth.
+const ADMIN_DEMO = { usuario: "admin", pass: "demo" };
+let admin = leer("admin", false);
+let ocultos = new Set(leer("ocultos", [])); // códigos que el negocio ocultó desde el panel
 
 const cliente = () => mayoristas.find((m) => m.id === sesion && m.estado === "aprobado") || null;
 const catDe = (id) => window.CATEGORIAS.find((c) => c.id === id) || { nombre: id, color: "#eee" };
@@ -67,7 +71,7 @@ function pintarIntro() {
 
 function lista() {
   const q = filtro.q.trim().toLowerCase();
-  let l = productos.filter((p) => (filtro.cat === "todas" || p.categoria === filtro.cat) && (!q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)));
+  let l = productos.filter((p) => !ocultos.has(p.codigo) && (filtro.cat === "todas" || p.categoria === filtro.cat) && (!q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)));
   if (filtro.orden === "asc") l.sort((a, b) => a.precio - b.precio);
   if (filtro.orden === "desc") l.sort((a, b) => b.precio - a.precio);
   if (filtro.orden === "az") l.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
@@ -179,7 +183,20 @@ function dlgCheckout() {
   });
 }
 
+function pintarProductosPanel() {
+  const q = ($("#q-panel")?.value || "").trim().toLowerCase();
+  const l = productos.filter((p) => !q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q));
+  $("#tabla-prod").innerHTML = `<p class="nota">${productos.length - ocultos.size} visibles · ${ocultos.size} ocultos</p>` + l.map((p) => {
+    const vis = !ocultos.has(p.codigo);
+    return `<div class="reg prod${vis ? "" : " oculto"}"><b>${esc(p.nombre)}</b>
+      <div class="der"><span class="sub">${pesos(p.precio)} · stock ${p.stock}</span>
+        <label class="switch"><input type="checkbox" data-vis="${esc(p.codigo)}" ${vis ? "checked" : ""}><span>${vis ? "Visible" : "Oculto"}</span></label></div>
+      <span class="sub">${esc(p.codigo)} · ${esc(catDe(p.categoria).nombre)}</span></div>`;
+  }).join("");
+}
+
 function pintarPanel() {
+  pintarProductosPanel();
   $("#tabla-may").innerHTML = mayoristas.map((m) => `<div class="reg"><b>${esc(m.nombre)}</b>
     <div class="der"><span class="estado ${m.estado === "aprobado" ? "apr" : "pend"}">${m.estado === "aprobado" ? "Aprobado" : "Pendiente"}</span>
       <label class="sub">Desc. <input class="pct" type="number" min="0" max="80" value="${m.desc}" data-pct="${m.id}" aria-label="Descuento de ${esc(m.nombre)}"> %</label>
@@ -208,7 +225,10 @@ function importarCSV(texto) {
 
 function ir(vista) {
   $("#vista-tienda").hidden = vista !== "tienda"; $("#vista-panel").hidden = vista !== "panel";
-  if (vista === "panel") pintarPanel(); window.scrollTo(0, 0);
+  $("#login-panel").hidden = admin; $("#panel-contenido").hidden = !admin;
+  if (vista === "panel" && admin) pintarPanel();
+  if (vista === "panel" && !admin) setTimeout(() => $("#form-admin [name=usuario]").focus(), 0);
+  window.scrollTo(0, 0);
 }
 
 function refrescar() { pintarCats(); pintarIntro(); pintarGrilla(); pintarCarro(); }
@@ -226,7 +246,7 @@ document.addEventListener("click", (e) => {
   else if (b.id === "btn-cuenta") { if (cliente()) { sesion = null; guardar("sesion", null); refrescar(); toast("Saliste de la cuenta mayorista"); } else dlgCuenta(); }
   else if (b.dataset.modo) dlgCuenta(b.dataset.modo);
   else if (b.hasAttribute("data-cerrar-dlg")) b.closest("dialog").close();
-  else if (b.dataset.ir) { e.preventDefault(); ir(b.dataset.ir); }
+  else if (b.dataset.ir) { e.preventDefault(); history.replaceState(null, "", b.dataset.ir === "panel" ? "#panel" : location.pathname); ir(b.dataset.ir); }
   else if (b.dataset.tab) { $$(".tabs button").forEach((x) => x.setAttribute("aria-selected", x === b)); $$("[data-panel]").forEach((s) => (s.hidden = s.dataset.panel !== b.dataset.tab)); }
   else if (b.dataset.aprobar) { const m = mayoristas.find((x) => x.id == b.dataset.aprobar); m.estado = "aprobado"; guardar("mayoristas", mayoristas); pintarPanel(); toast(`${m.nombre} ya ve precios mayoristas`); }
 });
@@ -234,12 +254,29 @@ $("#cajon").addEventListener("click", (e) => { if (e.target.id === "cajon") abri
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") abrirCarro(false); });
 document.addEventListener("change", (e) => {
   if (e.target.dataset.pct) { const m = mayoristas.find((x) => x.id == e.target.dataset.pct); m.desc = Math.max(0, Math.min(80, Number(e.target.value) || 0)); guardar("mayoristas", mayoristas); toast(`Descuento de ${m.nombre}: ${m.desc}%`); }
+  if (e.target.dataset.vis) {
+    const c = e.target.dataset.vis; e.target.checked ? ocultos.delete(c) : ocultos.add(c);
+    guardar("ocultos", [...ocultos]); delete carro[c]; pintarProductosPanel(); pintarGrilla(); pintarCarro();
+    toast(e.target.checked ? "El producto se ve en la tienda" : "Producto oculto en la tienda");
+  }
   if (e.target.id === "orden") { filtro.orden = e.target.value; pintarGrilla(); }
   if (e.target.id === "csv" && e.target.files[0]) {
     e.target.files[0].text().then((t) => { try { const n = importarCSV(t); $("#imp-res").textContent = `Se cargaron ${n} productos. Volvé a la tienda para verlos.`; carro = {}; refrescar(); } catch (err) { $("#imp-res").textContent = err.message; } });
   }
 });
+$("#form-admin").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(e.target));
+  const ok = d.usuario.trim().toLowerCase() === ADMIN_DEMO.usuario && d.pass === ADMIN_DEMO.pass;
+  $("#admin-error").hidden = ok;
+  if (!ok) return;
+  admin = true; guardar("admin", true); e.target.reset(); ir("panel"); toast("Bienvenido al panel");
+});
+$("#admin-salir").addEventListener("click", () => { admin = false; guardar("admin", false); ir("panel"); toast("Saliste del panel"); });
 $("#q").addEventListener("input", (e) => { filtro.q = e.target.value; pintarGrilla(); });
+$("#q-panel").addEventListener("input", pintarProductosPanel);
 
 refrescar();
+const segunHash = () => ir(location.hash === "#panel" ? "panel" : "tienda");
 if (location.hash === "#panel") ir("panel");
+window.addEventListener("hashchange", segunHash);

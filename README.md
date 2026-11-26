@@ -22,7 +22,7 @@
 | 🛒 **Catálogo y carrito** | Categorías, buscador por nombre o código, orden por precio y carrito que se guarda en el navegador. |
 | 🏷️ **Precios claros** | El público ve el precio de lista. Los descuentos que se muestran son siempre reales. |
 | 🔐 **Mayoristas y revendedores** | Se registran, el negocio los aprueba y, al entrar, ven **su** precio en la misma tienda. Compra mínima configurable. |
-| 🎚️ **Descuento por cliente** | Desde el panel, el dueño le pone a cada mayorista su porcentaje. |
+| 🎚️ **Panel del negocio** | Con usuario y contraseña: ocultar o mostrar productos, aprobar mayoristas y ponerle a cada uno su descuento, ver pedidos. |
 | 📦 **Importación desde el programa del negocio** | Se sube el archivo exportado (CSV) y se actualizan productos, precios y stock. |
 | 🚚 **Entrega y pago** | Envío a toda Mendoza por Correo Argentino o retiro en el local. Transferencia o tarjeta (Mercado Pago). |
 | 📱 **Pensada para el celular** | Se usa cómoda con una mano; anda igual en la compu. |
@@ -69,7 +69,14 @@ npm run check    # revisa la sintaxis
 npm run dev      # servidor local con Wrangler
 ```
 
-O abrí `public/index.html` directamente en el navegador. Para entrar como mayorista: `mayorista@demo.com` con cualquier contraseña. El panel está en el pie de página.
+O abrí `public/index.html` directamente en el navegador.
+
+| Para entrar como | Dónde | Datos de prueba |
+|---|---|---|
+| Mayorista | Botón "Soy mayorista" | `mayorista@demo.com` + cualquier contraseña |
+| Negocio (panel) | Pie de página o `/#panel` | usuario `admin`, contraseña `demo` |
+
+> En el prototipo los accesos son de muestra (todo corre en el navegador y no hay datos reales). En la versión real, las cuentas y el panel van con autenticación en el servidor.
 
 ## 🗺️ Roadmap
 

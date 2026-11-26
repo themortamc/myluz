@@ -43,13 +43,33 @@
 </main>
 
 <main id="vista-panel" class="w panel" hidden>
-  <div class="panel-head"><h1>Panel del negocio <span class="pill">demo</span></h1><button class="btn-g" type="button" data-ir="tienda">Volver a la tienda</button></div>
+  <section class="login-panel" id="login-panel" hidden>
+    <form class="dlg tarjeta" id="form-admin">
+      <span class="eyebrow">Acceso del negocio</span>
+      <h1>Ingresá al panel</h1>
+      <p>Desde acá manejás productos, mayoristas y pedidos.</p>
+      <label class="campo">Usuario<input name="usuario" required autocomplete="username"></label>
+      <label class="campo">Contraseña<input name="pass" type="password" required autocomplete="current-password"></label>
+      <p class="demo">Demo: usuario <b>admin</b>, contraseña <b>demo</b>. En la tienda real cada usuario tiene su propia clave.</p>
+      <p class="error" id="admin-error" role="alert" hidden>Usuario o contraseña incorrectos.</p>
+      <button class="cta">Ingresar</button>
+      <button class="btn-g" type="button" data-ir="tienda">Volver a la tienda</button>
+    </form>
+  </section>
+  <div id="panel-contenido">
+  <div class="panel-head"><h1>Panel del negocio <span class="pill">demo</span></h1><div class="acc"><button class="btn-g" type="button" data-ir="tienda">Ver la tienda</button><button class="btn-g" type="button" id="admin-salir">Salir</button></div></div>
   <div class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-tab="may">Mayoristas</button>
+    <button role="tab" aria-selected="true" data-tab="prod">Productos</button>
+    <button role="tab" aria-selected="false" data-tab="may">Mayoristas</button>
     <button role="tab" aria-selected="false" data-tab="imp">Importar productos</button>
     <button role="tab" aria-selected="false" data-tab="ped">Pedidos</button>
   </div>
-  <section data-panel="may">
+  <section data-panel="prod">
+    <p class="nota">Ocultá o mostrá productos en la tienda. Los ocultos no aparecen para nadie, pero no se borran.</p>
+    <label class="buscar panel-buscar"><span class="sr">Buscar en productos</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input id="q-panel" type="search" placeholder="Buscar por nombre o código"></label>
+    <div class="tabla" id="tabla-prod"></div>
+  </section>
+  <section data-panel="may" hidden>
     <p class="nota">Cada mayorista o revendedor se registra en la tienda. Desde acá lo aprobás y le ponés su descuento sobre el precio de lista.</p>
     <div class="tabla" id="tabla-may"></div>
   </section>
@@ -59,6 +79,7 @@
     <p id="imp-res" class="nota" aria-live="polite"></p>
   </section>
   <section data-panel="ped" hidden><div class="tabla" id="tabla-ped"></div></section>
+  </div>
 </main>
 
 <footer class="pie"><div class="w pie-in">
