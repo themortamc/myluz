@@ -72,11 +72,11 @@
     <div class="tabla" id="tabla-prod"></div>
   </section>
   <section data-panel="may" hidden>
-    <p class="nota">Cada revendedor se registra en la tienda. Desde acá lo aprobás y le ponés su descuento sobre el precio de contado.</p>
+    <p class="nota">Cada revendedor se registra en la tienda. Desde acá lo aprobás. Al entrar ve el precio fijo de revendedor de cada producto, que cargás en la pestaña Productos.</p>
     <div class="tabla" id="tabla-may"></div>
   </section>
   <section data-panel="imp" hidden>
-    <p class="nota">Subís el archivo que exporta el programa y se actualizan productos, precios y stock. El precio es el de contado: la tienda calcula sola el de lista (tarjeta, 3 cuotas sin interés) y el 10% off con transferencia. Probá con un CSV con columnas: <code>codigo,nombre,categoria,precio,stock</code>.</p>
+    <p class="nota">Subís el archivo que exporta el programa y se actualizan productos, precios y stock. El precio es el de contado: la tienda calcula sola el de lista (tarjeta, 3 cuotas sin interés) y el 10% off con transferencia. Probá con un CSV con columnas: <code>codigo,nombre,categoria,precio,stock</code> (y opcional <code>precio_revendedor</code>).</p>
     <label class="subir"><input type="file" id="csv" accept=".csv,text/csv"><span>Elegir archivo CSV</span></label>
     <p id="imp-res" class="nota" aria-live="polite"></p>
   </section>

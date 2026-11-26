@@ -52,7 +52,9 @@ window.PRODUCTOS = [
   ["RG-8003", "Vela aromática en frasco", "regaleria", 9400, 11],
   ["RG-8004", "Set de mate con bombilla", "regaleria", 21500, 6],
   ["RG-8005", "Reloj de pared moderno", "regaleria", 25900, 4],
-].map(([codigo, nombre, categoria, precio, stock]) => ({ codigo, nombre, categoria, precio, stock }));
+].map(([codigo, nombre, categoria, precio, stock]) => ({ codigo, nombre, categoria, precio, stock,
+  // Precio FIJO para revendedores (pedido del dueño: fijo por producto, no porcentaje). De EJEMPLO: 80 % del contado.
+  precioRev: Math.round((precio * 0.8) / 100) * 100 }));
 
 // Descripciones de EJEMPLO. En la tienda real las carga el negocio desde el panel o vienen del programa.
 window.DESCRIPCIONES = {

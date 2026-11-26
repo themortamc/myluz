@@ -98,9 +98,9 @@ PAGINAS = {
 <h2>1. Registro y aprobación</h2>
 <p>Los precios de revendedor son para comercios y revendedores. Para acceder tenés que registrarte con los datos de tu negocio (incluido el CUIT). myluz revisa cada solicitud y puede aprobarla o rechazarla. Hasta que la cuenta esté aprobada, vas a ver los precios para público.</p>
 <h2>2. Precios de revendedor</h2>
-<p>El precio de revendedor de cada cuenta puede ser distinto según las condiciones comerciales acordadas. Los precios pueden cambiar sin aviso; se respeta el vigente al confirmar el pedido. [COMPLETAR: si los precios de revendedor incluyen o no IVA.]</p>
+<p>Los revendedores aprobados ven un precio fijo de revendedor para cada producto. Los precios pueden cambiar sin aviso; se respeta el vigente al confirmar el pedido. [COMPLETAR: si los precios de revendedor incluyen o no IVA.]</p>
 <h2>3. Compra mínima</h2>
-<p>Los pedidos de revendedores tienen un monto mínimo, que se informa en el carrito. [COMPLETAR: monto o cantidad mínima.]</p>
+<p>Por ahora no hay un monto mínimo de compra para revendedores: alcanza con tener la cuenta aprobada. Si en el futuro se establece uno, se va a informar en el carrito antes de confirmar el pedido.</p>
 <h2>4. Uso de la cuenta</h2>
 <p>La cuenta es personal del negocio registrado. No se pueden compartir el usuario ni los precios de revendedor con terceros. myluz puede suspender o dar de baja una cuenta si se usa en forma indebida o si los datos no son correctos.</p>
 <h2>5. Compras para reventa</h2>

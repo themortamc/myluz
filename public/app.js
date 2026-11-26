@@ -2,8 +2,6 @@
 // Prototipo de myluz: todo corre en el navegador con datos de ejemplo. No hay servidor ni datos reales.
 
 const CONFIG = {
-  descMayorista: 0.25,     // descuento base de mayoristas sobre el precio de contado
-  minimoMayorista: 80000,  // compra mínima de ejemplo
   alias: "alias.del.negocio",
 };
 
@@ -16,9 +14,9 @@ const leer = (k, def) => { try { return JSON.parse(localStorage.getItem("myluz:"
 
 // Mayoristas de ejemplo (el panel los aprueba y les pone su descuento)
 let mayoristas = leer("revendedores", [
-  { id: 1, nombre: "Distribuidora Andes", email: "revendedor@demo.com", cuit: "30-00000000-1", estado: "aprobado", desc: 25 },
-  { id: 2, nombre: "Kiosco El Sol", email: "kiosco@demo.com", cuit: "20-00000000-2", estado: "aprobado", desc: 30 },
-  { id: 3, nombre: "Bazar La Esquina", email: "bazar@demo.com", cuit: "27-00000000-3", estado: "pendiente", desc: 25 },
+  { id: 1, nombre: "Distribuidora Andes", email: "revendedor@demo.com", cuit: "30-00000000-1", estado: "aprobado" },
+  { id: 2, nombre: "Kiosco El Sol", email: "kiosco@demo.com", cuit: "20-00000000-2", estado: "aprobado" },
+  { id: 3, nombre: "Bazar La Esquina", email: "bazar@demo.com", cuit: "27-00000000-3", estado: "pendiente" },
 ]);
 let productos = window.PRODUCTOS.slice();
 let carro = leer("carro", {});
@@ -30,6 +28,9 @@ let admin = leer("admin", false);
 // Stock visible por producto (panel): vacío = se muestra el stock real; 0 = el producto no aparece en la tienda.
 // Nunca se muestra más que el stock real, para no vender lo que no hay.
 let stockVis = leer("stockVisible", {});
+// Precio fijo de revendedor por producto: viene en los datos y el negocio lo puede cambiar desde el panel.
+let preciosRev = leer("preciosRev", {});
+const precioRevDe = (p) => preciosRev[p.codigo] ?? p.precioRev ?? p.precio; // sin precio de revendedor cargado, ve el de contado
 const stockDe = (p) => (stockVis[p.codigo] == null ? p.stock : Math.min(stockVis[p.codigo], p.stock));
 const visible = (p) => stockVis[p.codigo] !== 0;
 
@@ -42,7 +43,7 @@ const catDe = (id) => window.CATEGORIAS.find((c) => c.id === id) || { nombre: id
 const pctTransf = Math.round(window.Precio.DESCUENTO * 100);
 function precios(p) {
   const m = cliente();
-  if (m) return { tachado: p.precio, final: p.precio * (1 - m.desc / 100), tarjeta: p.precio * (1 - m.desc / 100), etiqueta: `-${m.desc}% revendedor`, may: true };
+  if (m) return { tachado: p.precio, final: precioRevDe(p), tarjeta: precioRevDe(p), etiqueta: "Revendedor", may: true };
   const lista = window.Precio.precioLista(p.precio);
   return { tachado: null, final: p.precio, tarjeta: lista, cuota: window.Precio.valorCuota(lista), etiqueta: null, may: false };
 }
@@ -66,8 +67,8 @@ function pintarIntro() {
   const m = cliente();
   $("#intro").innerHTML = m
     ? `<div class="hero may"><div class="hero-txt"><span class="eyebrow">Cuenta de revendedor</span><h1>Hola, ${esc(m.nombre)}</h1>
-       <p>Estás viendo tus precios de revendedor en toda la tienda. Compra mínima: ${pesos(CONFIG.minimoMayorista)}.</p>
-       <div class="chips"><span class="chip may">Tu descuento: ${m.desc}% sobre lista</span><span class="chip">Envíos a toda Mendoza</span></div></div></div>`
+       <p>Estás viendo tus precios de revendedor en toda la tienda.</p>
+       <div class="chips"><span class="chip may">Precios fijos de revendedor</span><span class="chip">Envíos a toda Mendoza</span></div></div></div>`
     : `<div class="hero"><div class="hero-txt"><span class="eyebrow">Multirubro en Junín, Mendoza</span>
        <h1>Todo para tu casa,<br>en un solo lugar</h1>
        <p>Bazar, perfumería, zapatería, librería, juguetería y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
@@ -157,15 +158,13 @@ function pintarCarro() {
   $("#carro-items").innerHTML = t.items.length ? t.items.map(({ p, n }) => `<div class="item"><b>${esc(p.nombre)}</b>
       <div class="qty"><button type="button" data-menos="${esc(p.codigo)}" aria-label="Quitar uno">−</button><span>${n}</span><button type="button" data-mas="${esc(p.codigo)}" aria-label="Sumar uno">+</button></div>
       <span class="sub">${pesos(precios(p).final)} c/u</span></div>`).join("") : `<p class="nota">Todavía no agregaste productos.</p>`;
-  const falta = m && t.final < CONFIG.minimoMayorista;
   $("#carro-pie").innerHTML = t.items.length ? `
     ${m ? `<div class="fila"><span>Precio de contado</span><span class="tachado">${pesos(t.lista)}</span></div>` : ""}
     ${m ? `<div class="fila total"><span>Total revendedor</span><span>${pesos(t.final)}</span></div>`
       : `<div class="fila total"><span>Total con tarjeta</span><span>${pesos(t.tarjeta)}</span></div>
     <div class="fila"><span>${window.Precio.CUOTAS} cuotas sin interés de</span><span>${pesos(window.Precio.valorCuota(t.tarjeta))}</span></div>
     <div class="fila contado"><span>Con transferencia o efectivo (${pctTransf}% off)</span><b>${pesos(t.final)}</b></div>`}
-    ${falta ? `<div class="alerta">Te faltan ${pesos(CONFIG.minimoMayorista - t.final)} para la compra mínima para revendedores.</div>` : ""}
-    <button class="cta" type="button" id="ir-checkout" ${falta ? "disabled" : ""}>Finalizar compra</button>` : "";
+    <button class="cta" type="button" id="ir-checkout">Finalizar compra</button>` : "";
   guardar("carro", carro);
 }
 
@@ -200,7 +199,7 @@ function dlgCuenta(modo = "ingresar") {
       if (m.estado !== "aprobado") return toast("Tu cuenta todavía está pendiente de aprobación");
       sesion = m.id; guardar("sesion", sesion); d.close(); refrescar(); toast("Ahora ves tus precios de revendedor");
     } else {
-      mayoristas.push({ id: Date.now(), nombre: datos.nombre, email: datos.email, cuit: datos.cuit, estado: "pendiente", desc: CONFIG.descMayorista * 100 });
+      mayoristas.push({ id: Date.now(), nombre: datos.nombre, email: datos.email, cuit: datos.cuit, estado: "pendiente" });
       guardar("revendedores", mayoristas); d.close(); toast("¡Listo! Te avisamos cuando aprobemos tu cuenta");
     }
   });
@@ -292,6 +291,7 @@ function pintarProductosPanel() {
     const vis = visible(p), v = stockVis[p.codigo];
     return `<div class="reg prod${vis ? "" : " oculto"}"><b>${esc(p.nombre)}</b>
       <div class="der"><span class="sub">Contado ${pesos(p.precio)} · lista ${pesos(window.Precio.precioLista(p.precio))} · stock real ${p.stock}</span>
+        <label class="stock-vis">Revendedor $<input type="number" min="1" step="1" inputmode="numeric" data-prec-rev="${esc(p.codigo)}" value="${precioRevDe(p)}" aria-label="Precio de revendedor de ${esc(p.nombre)}"></label>
         <label class="stock-vis">Stock visible<input type="number" min="0" step="1" inputmode="numeric" data-stock-vis="${esc(p.codigo)}" value="${v == null ? "" : v}" placeholder="${p.stock}"></label></div>
       <span class="sub">${esc(p.codigo)} · ${esc(catDe(p.categoria).nombre)}</span></div>`;
   }).join("");
@@ -301,7 +301,6 @@ function pintarPanel() {
   pintarProductosPanel();
   $("#tabla-may").innerHTML = mayoristas.map((m) => `<div class="reg"><b>${esc(m.nombre)}</b>
     <div class="der"><span class="estado ${m.estado === "aprobado" ? "apr" : "pend"}">${m.estado === "aprobado" ? "Aprobado" : "Pendiente"}</span>
-      <label class="sub">Desc. <input class="pct" type="number" min="0" max="80" value="${m.desc}" data-pct="${m.id}" aria-label="Descuento de ${esc(m.nombre)}"> %</label>
       ${m.estado === "aprobado" ? "" : `<button class="mini" type="button" data-aprobar="${m.id}">Aprobar</button>`}</div>
     <span class="sub">${esc(m.email)} · CUIT ${esc(m.cuit)}</span></div>`).join("");
   const ped = leer("pedidos", []);
@@ -319,6 +318,7 @@ function importarCSV(texto) {
     codigo: f[idx("codigo")], nombre: f[idx("nombre")],
     categoria: idx("categoria") >= 0 ? (window.CATEGORIAS.find((c) => c.nombre.toLowerCase() === (f[idx("categoria")] || "").toLowerCase())?.id || "bazar") : "bazar",
     precio: Number(String(f[idx("precio")]).replace(/\./g, "").replace(",", ".")) || 0,
+    precioRev: idx("precio_revendedor") >= 0 ? Number(String(f[idx("precio_revendedor")]).replace(/\./g, "").replace(",", ".")) || undefined : undefined,
     stock: idx("stock") >= 0 ? Number(f[idx("stock")]) || 0 : 10,
   })).filter((p) => p.precio > 0);
   if (!nuevos.length) throw new Error("No encontramos productos válidos en el archivo.");
@@ -359,7 +359,12 @@ document.addEventListener("click", (e) => {
 $("#cajon").addEventListener("click", (e) => { if (e.target.id === "cajon") abrirCarro(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") abrirCarro(false); });
 document.addEventListener("change", (e) => {
-  if (e.target.dataset.pct) { const m = mayoristas.find((x) => x.id == e.target.dataset.pct); m.desc = Math.max(0, Math.min(80, Number(e.target.value) || 0)); guardar("revendedores", mayoristas); toast(`Descuento de ${m.nombre}: ${m.desc}%`); }
+  if (e.target.dataset.precRev) {
+    const c = e.target.dataset.precRev, v = Math.round(Number(e.target.value)), p = productos.find((x) => x.codigo === c);
+    if (v > 0) preciosRev[c] = v; else delete preciosRev[c];
+    guardar("preciosRev", preciosRev); pintarProductosPanel(); pintarGrilla(); pintarCarro();
+    toast(`${p.nombre}: precio de revendedor ${pesos(precioRevDe(p))}`);
+  }
   if (e.target.dataset.stockVis != null) {
     const c = e.target.dataset.stockVis, raw = e.target.value.trim(), p = productos.find((x) => x.codigo === c);
     if (raw === "") delete stockVis[c]; else stockVis[c] = Math.max(0, Math.floor(Number(raw)) || 0);
