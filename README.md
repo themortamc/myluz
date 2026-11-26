@@ -25,7 +25,8 @@
 | 🔐 **Mayoristas y revendedores** | Se registran, el negocio los aprueba y, al entrar, ven **su** precio en la misma tienda. Compra mínima configurable. |
 | 🎚️ **Panel del negocio** | Con usuario y contraseña: ocultar o mostrar productos, aprobar mayoristas y ponerle a cada uno su descuento, ver pedidos. |
 | 📦 **Importación desde el programa del negocio** | Se sube el archivo exportado (CSV) y se actualizan productos, precios y stock. |
-| 🚚 **Entrega y pago** | Envío a toda Mendoza por Correo Argentino o retiro en el local. Transferencia o tarjeta (Mercado Pago). |
+| 🚚 **Envío calculado** | Costo de Correo Argentino a domicilio o a sucursal según código postal, peso y medidas (peso volumétrico incluido). Mismo motor que una tienda en producción, con pruebas automáticas. Retiro en el local sin costo. |
+| 💳 **Pago** | Transferencia o tarjeta (Mercado Pago). |
 | ⚖️ **Legales argentinos** | Términos y condiciones, privacidad (Ley 25.326), cambios y garantía, condiciones para mayoristas, botón de arrepentimiento y enlace a Defensa del Consumidor. |
 | 📱 **Pensada para el celular** | Se usa cómoda con una mano; anda igual en la compu. |
 
@@ -59,6 +60,7 @@ public/
 ├── index.html   # estructura de la tienda y del panel
 ├── styles.css   # diseño (mobile first)
 ├── app.js       # catálogo, precios, carrito, cuentas mayoristas y panel
+├── envio.js     # cálculo de envío de Correo Argentino (probado en tests/)
 ├── data.js      # productos y descripciones de EJEMPLO
 ├── legales/     # páginas legales (se generan con tools/legales.py)
 ├── img/p/       # fotos de ejemplo (Pixabay, ver docs/CREDITOS.md)
@@ -68,7 +70,7 @@ public/
 ## 🚀 Probarlo en tu compu
 
 ```bash
-npm run check    # revisa la sintaxis
+npm run check    # sintaxis + pruebas (envío)
 npm run dev      # servidor local con Wrangler
 ```
 

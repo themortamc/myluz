@@ -108,7 +108,7 @@ function pintarFicha(cod) {
           <button class="cta" type="button" data-add-ficha="${esc(p.codigo)}">Agregar al pedido</button></div>`}
         <div class="desc"><h2>Descripción</h2><p>${esc(p.descripcion || "Sin descripción por ahora.")}</p></div>
         <ul class="ficha-extra">
-          <li><b>Envío a toda Mendoza</b><span>Por Correo Argentino. El costo se calcula según el destino.</span></li>
+          <li><b>Envío a toda Mendoza</b><span>Por Correo Argentino, a domicilio o a sucursal. El costo se calcula con tu código postal al finalizar la compra.</span></li>
           <li><b>Retiro en el local</b><span>Junín, Mendoza. Te avisamos cuando esté listo.</span></li>
           <li><b>Pagás como quieras</b><span>Transferencia o tarjeta de crédito y débito.</span></li>
         </ul>
@@ -128,6 +128,10 @@ function totales() {
   const lista = items.reduce((s, i) => s + i.p.precio * i.n, 0);
   const final = items.reduce((s, i) => s + precios(i.p).final * i.n, 0);
   return { items, lista, final, cant: items.reduce((s, i) => s + i.n, 0) };
+}
+
+function itemsEnvio(t) {
+  return t.items.map(({ p, n }) => { const e = (window.ENVIO || {})[p.codigo] || {}; return { quantity: n, weightKg: e.kg, lengthCm: e.l, widthCm: e.a, heightCm: e.h }; });
 }
 
 function pintarCarro() {
@@ -184,29 +188,73 @@ function dlgCuenta(modo = "ingresar") {
 
 function dlgCheckout() {
   const t = totales(), m = cliente(), d = $("#dlg-checkout");
-  d.innerHTML = `<form class="dlg" method="dialog">
+  let cotizacion = null; // { domicilio, sucursal, weightKg } de Correo Argentino
+  d.innerHTML = `<form class="dlg" method="dialog" novalidate>
     <h2>Finalizar compra</h2>
     <label class="campo">Nombre y apellido<input name="nombre" required autocomplete="name" value="${m ? esc(m.nombre) : ""}"></label>
     <label class="campo">WhatsApp<input name="tel" type="tel" required autocomplete="tel"></label>
     <fieldset class="opciones" style="border:0;padding:0;margin:0"><legend class="campo">Entrega</legend>
-      <label class="op"><input type="radio" name="entrega" value="correo" checked><span><b>Envío por Correo Argentino</b><small>A toda Mendoza. El costo se calcula según el destino.</small></span></label>
-      <label class="op"><input type="radio" name="entrega" value="retiro"><span><b>Retiro en el local</b><small>Junín, Mendoza. Te avisamos cuando esté listo.</small></span></label>
+      <label class="op"><input type="radio" name="entrega" value="correo" checked><span><b>Envío por Correo Argentino</b><small>A toda Mendoza.</small></span></label>
+      <label class="op"><input type="radio" name="entrega" value="retiro"><span><b>Retiro en el local</b><small>Junín, Mendoza. Sin costo. Te avisamos cuando esté listo.</small></span></label>
     </fieldset>
+    <div class="envio-box" id="envio-box">
+      <label class="campo">Código postal<input name="cp" inputmode="numeric" autocomplete="postal-code" placeholder="Ej.: 5577" maxlength="9"></label>
+      <p class="envio-msg" id="envio-msg" aria-live="polite">Escribí tu código postal para calcular el envío.</p>
+      <div class="opciones" id="envio-ops" hidden>
+        <label class="op"><input type="radio" name="servicio" value="domicilio" checked><span><b>A domicilio · <span id="p-dom"></span></b><small>Te lo lleva el correo a tu casa.</small></span></label>
+        <label class="op"><input type="radio" name="servicio" value="sucursal"><span><b>A sucursal · <span id="p-suc"></span></b><small>Lo retirás en la sucursal de Correo más cercana.</small></span></label>
+      </div>
+    </div>
     <fieldset class="opciones" style="border:0;padding:0;margin:0"><legend class="campo">Pago</legend>
       <label class="op"><input type="radio" name="pago" value="transf" checked><span><b>Transferencia</b><small>Te mostramos el alias al confirmar.</small></span></label>
       <label class="op"><input type="radio" name="pago" value="tarjeta"><span><b>Tarjeta de crédito o débito</b><small>Pagás en Mercado Pago.</small></span></label>
     </fieldset>
-    <div class="fila total"><span>Total</span><span>${pesos(t.final)}</span></div>
+    <div class="resumen"><div class="fila"><span>Productos</span><span>${pesos(t.final)}</span></div>
+      <div class="fila"><span>Envío</span><span id="r-envio">—</span></div>
+      <div class="fila total"><span>Total</span><span id="r-total">${pesos(t.final)}</span></div></div>
     <p class="legal-ok">Al confirmar aceptás los <a href="legales/terminos/" target="_blank">términos y condiciones</a> y la <a href="legales/privacidad/" target="_blank">política de privacidad</a>.</p>
+    <p class="error" id="chk-error" role="alert" hidden></p>
     <button class="cta">Confirmar pedido</button><button class="btn-g" type="button" data-cerrar-dlg>Volver</button></form>`;
   d.showModal();
-  $("form", d).addEventListener("submit", (e) => {
+  const f = $("form", d);
+  const costoEnvio = () => {
+    const fd = new FormData(f);
+    if (fd.get("entrega") !== "correo") return 0;
+    return cotizacion ? cotizacion[fd.get("servicio")] : null;
+  };
+  const actualizar = () => {
+    const fd = new FormData(f), correo = fd.get("entrega") === "correo";
+    $("#envio-box", d).hidden = !correo;
+    const cp = String(fd.get("cp") || "").trim();
+    cotizacion = null;
+    if (correo && cp.replace(/\s/g, "").length >= 4) {
+      try {
+        cotizacion = window.Envio.cotizarMendoza(cp, itemsEnvio(t));
+        $("#p-dom", d).textContent = pesos(cotizacion.domicilio);
+        $("#p-suc", d).textContent = pesos(cotizacion.sucursal);
+        $("#envio-msg", d).textContent = `Peso del paquete: ${String(cotizacion.weightKg).replace(".", ",")} kg · tarifa de Correo Argentino (${window.Envio.RATES_UPDATED_AT}).`;
+      } catch (err) { $("#envio-msg", d).textContent = err.message; }
+    } else if (correo) $("#envio-msg", d).textContent = "Escribí tu código postal para calcular el envío.";
+    $("#envio-ops", d).hidden = !cotizacion;
+    const envio = costoEnvio();
+    $("#r-envio", d).textContent = !correo ? "Sin costo (retiro)" : envio == null ? "—" : pesos(envio);
+    $("#r-total", d).textContent = pesos(t.final + (envio || 0));
+  };
+  f.addEventListener("input", actualizar);
+  f.addEventListener("change", actualizar);
+  actualizar();
+  f.addEventListener("submit", (e) => {
     e.preventDefault();
-    const datos = Object.fromEntries(new FormData(e.target));
+    const datos = Object.fromEntries(new FormData(f));
+    const envio = costoEnvio(), err = $("#chk-error", d);
+    const falta = !String(datos.nombre || "").trim() ? "Escribí tu nombre." : !String(datos.tel || "").trim() ? "Escribí tu WhatsApp." : envio == null ? "Escribí un código postal de Mendoza válido para calcular el envío." : "";
+    err.hidden = !falta; err.textContent = falta;
+    if (falta) return;
     const num = "ML-" + String(Date.now()).slice(-5);
-    const total = t.final;
-    const pedidos = leer("pedidos", []); pedidos.unshift({ num, nombre: datos.nombre, total, pago: datos.pago, entrega: datos.entrega, may: !!m }); guardar("pedidos", pedidos.slice(0, 20));
+    const total = t.final + envio;
+    const pedidos = leer("pedidos", []); pedidos.unshift({ num, nombre: datos.nombre, total, envio, pago: datos.pago, entrega: datos.entrega, may: !!m }); guardar("pedidos", pedidos.slice(0, 20));
     d.innerHTML = `<div class="ok-box"><div class="circ">✓</div><h2>¡Pedido ${num} recibido!</h2>
+      <p>Total ${pesos(total)}${envio ? ` (incluye envío ${pesos(envio)})` : ""}.</p>
       <p>${datos.pago === "transf" ? `Transferí ${pesos(total)} al alias <b>${CONFIG.alias}</b> y mandanos el comprobante por WhatsApp.` : "En la tienda real, acá se abre Mercado Pago para pagar con tarjeta."}</p>
       <p>Al negocio le llega un aviso con el pedido completo.</p><button class="cta" type="button" data-cerrar-dlg>Seguir comprando</button></div>`;
     carro = {}; pintarCarro(); abrirCarro(false);
@@ -234,7 +282,7 @@ function pintarPanel() {
     <span class="sub">${esc(m.email)} · CUIT ${esc(m.cuit)}</span></div>`).join("");
   const ped = leer("pedidos", []);
   $("#tabla-ped").innerHTML = ped.length ? ped.map((p) => `<div class="reg"><b>${esc(p.num)} · ${esc(p.nombre)}</b><div class="der"><b>${pesos(p.total)}</b></div>
-    <span class="sub">${p.may ? "Mayorista" : "Minorista"} · ${p.pago === "transf" ? "Transferencia" : "Tarjeta"} · ${p.entrega === "retiro" ? "Retiro en local" : "Correo Argentino"}</span></div>`).join("")
+    <span class="sub">${p.may ? "Mayorista" : "Minorista"} · ${p.pago === "transf" ? "Transferencia" : "Tarjeta"} · ${p.entrega === "retiro" ? "Retiro en local" : `Correo Argentino ${pesos(p.envio || 0)}`}</span></div>`).join("")
     : `<p class="nota">Todavía no hay pedidos. Hacé uno de prueba en la tienda.</p>`;
 }
 

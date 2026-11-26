@@ -1,6 +1,7 @@
 # myluz
 Tienda online para un comercio multirubro (cliente de mortups). Hoy es un **prototipo estático** en `public/` (HTML + CSS + JS, datos de ejemplo); la versión real se construye sobre la base de Todo y Más (Next.js + Supabase + Cloudflare).
-- Verificar: `npm run check` (sintaxis). Probar en el navegador con Playwright antes de decir "listo".
+- Verificar: `npm run check` (sintaxis + pruebas de envío en `tests/`).
+- **Envío (crítico, no puede estar mal):** `public/envio.js` es copia fiel de `todoymas/lib/shipping.ts`. Si cambian las tarifas de Correo, actualizar los dos y correr las pruebas de ambos. En la tienda real conviene cotizar contra la API de MiCorreo con la cuenta del negocio. Probar en el navegador con Playwright antes de decir "listo".
 - Deploy: `npm run deploy` (Cloudflare Workers, nombre `myluz`).
 - **Repo público:** nunca subir claves, `.env`, datos reales del cliente (productos exportados, chats, teléfonos, direcciones). Las exportaciones van en `datos/` (ignorado).
 - Contexto del cliente y decisiones: `~/brain/Proyectos/myluz.md`.
