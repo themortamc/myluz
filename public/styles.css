@@ -196,11 +196,9 @@ a.btn-g{text-decoration:none;color:var(--ink)}
 .fila.contado{color:var(--ok)}
 .precio.grande+.cuotas{font-size:15px}.precio.grande~.contado{font-size:16px}.precio.grande~.contado b{font-size:20px}
 .logo-img{width:44px;height:44px;border-radius:50%;background:#fff;flex:none}
-/* Marca del negocio (2026-11-26): rojo del logo (#c2081b) y la letra de pincel del logo (Kalam, subconjunto "Myluz calzados"). */
-@font-face{font-family:"Marca";src:url(fonts/kalam-700-marca.woff2) format("woff2");font-weight:700;font-display:swap}
+/* Marca del negocio (2026-11-26): rojo del logo (#c2081b). La palabra "Myluz" es la del logo recortada (img/marca*.webp). */
 :root{--acc:#c2081b;--acc-ink:#a30616;--acc-soft:#fde7e9;--rojo-osc:#7d0511}
-.marca{font-family:"Marca",system-ui,sans-serif;font-weight:700;font-size:30px;letter-spacing:0;color:var(--acc);line-height:1}
-.pie .marca{color:#fff}
+.marca-img{height:44px;width:auto;display:block}
 .aviso{background:var(--rojo-osc);color:#fff}
 .btn-carro,.add,.cta,.mini{background:var(--acc);color:#fff}
 .add:hover{background:var(--acc-ink);color:#fff}
