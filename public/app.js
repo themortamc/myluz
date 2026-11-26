@@ -2,7 +2,6 @@
 // Prototipo de myluz: todo corre en el navegador con datos de ejemplo. No hay servidor ni datos reales.
 
 const CONFIG = {
-  descTransferencia: 0.10, // a confirmar con el cliente
   descMayorista: 0.25,     // descuento base de mayoristas sobre el precio de lista
   minimoMayorista: 80000,  // compra mínima de ejemplo
   alias: "alias.del.negocio",
@@ -29,11 +28,11 @@ let filtro = { cat: "todas", q: "", orden: "rel" };
 const cliente = () => mayoristas.find((m) => m.id === sesion && m.estado === "aprobado") || null;
 const catDe = (id) => window.CATEGORIAS.find((c) => c.id === id) || { nombre: id, color: "#eee" };
 
-// Precios: lista = tarjeta. Público ve el descuento por transferencia; el mayorista, su precio.
+// Precios: el público ve el precio de lista. El mayorista ve el de lista tachado y su precio (descuento real).
 function precios(p) {
   const m = cliente();
   if (m) return { tachado: p.precio, final: p.precio * (1 - m.desc / 100), etiqueta: `-${m.desc}% mayorista`, may: true };
-  return { tachado: p.precio, final: p.precio * (1 - CONFIG.descTransferencia), etiqueta: `-${CONFIG.descTransferencia * 100}% transferencia`, may: false };
+  return { tachado: null, final: p.precio, etiqueta: null, may: false };
 }
 
 function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 2200); }
@@ -46,10 +45,22 @@ function pintarCats() {
 function pintarIntro() {
   const m = cliente();
   $("#intro").innerHTML = m
-    ? `<div class="hero may"><h1>Hola, ${esc(m.nombre)}</h1><p>Estás viendo tus precios mayoristas. Compra mínima: ${pesos(CONFIG.minimoMayorista)}.</p>
-       <div class="chips"><span class="chip may">Tu descuento: ${m.desc}% sobre lista</span><span class="chip ok">Envíos a toda Mendoza</span></div></div>`
-    : `<div class="hero"><h1>Todo para tu casa, en un solo lugar</h1><p>Bazar, iluminación, ferretería, librería, juguetería y más. Comprá online y recibilo en toda Mendoza.</p>
-       <div class="chips"><span class="chip">${CONFIG.descTransferencia * 100}% off pagando por transferencia</span><span class="chip ok">Envíos a toda Mendoza por Correo Argentino</span><span class="chip">Retiro en el local, Junín</span></div></div>`;
+    ? `<div class="hero may"><div class="hero-txt"><span class="eyebrow">Cuenta mayorista</span><h1>Hola, ${esc(m.nombre)}</h1>
+       <p>Estás viendo tus precios mayoristas en toda la tienda. Compra mínima: ${pesos(CONFIG.minimoMayorista)}.</p>
+       <div class="chips"><span class="chip may">Tu descuento: ${m.desc}% sobre lista</span><span class="chip">Envíos a toda Mendoza</span></div></div></div>`
+    : `<div class="hero"><div class="hero-txt"><span class="eyebrow">Multirubro en Junín, Mendoza</span>
+       <h1>Todo para tu casa,<br>en un solo lugar</h1>
+       <p>Bazar, iluminación, ferretería, librería, juguetería y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
+       <div class="hero-cta"><a class="btn-p" href="#grilla">Ver productos</a><button class="btn-l" type="button" id="btn-may-hero">Soy mayorista o revendedor</button></div></div>
+       <ul class="beneficios">
+         <li><b>Envíos a toda Mendoza</b><span>Por Correo Argentino</span></li>
+         <li><b>Retiro en el local</b><span>Junín, Mendoza</span></li>
+         <li><b>Pagás como quieras</b><span>Transferencia o tarjeta</span></li>
+         <li><b>Precios mayoristas</b><span>Con cuenta aprobada</span></li>
+       </ul></div>
+       <h2 class="titulo">Comprá por categoría</h2>
+       <div class="cat-tiles">${window.CATEGORIAS.map((c) => { const p = productos.find((x) => x.codigo === c.foto) || productos.find((x) => x.categoria === c.id);
+         return `<button type="button" class="tile" data-cat="${c.id}">${p ? `<img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450">` : ""}<span>${esc(c.nombre)}</span></button>`; }).join("")}</div>`;
   $("#btn-cuenta").textContent = m ? m.nombre.split(" ")[0] + " · salir" : "Soy mayorista";
   $("#btn-cuenta").classList.toggle("may", !!m);
 }
@@ -68,14 +79,13 @@ function pintarGrilla() {
   $("#conteo").textContent = `${l.length} producto${l.length === 1 ? "" : "s"}`;
   $("#grilla").innerHTML = l.length ? l.map((p) => {
     const c = catDe(p.categoria), pr = precios(p), sin = p.stock <= 0;
-    return `<article class="card">
-      <div class="foto" style="background:${c.color}"><span>${esc(c.nombre)}</span>
-        <em class="tag ${pr.may ? "may" : ""}">${pr.etiqueta}</em>
-</div>
-      <div class="info"><span class="cod">${esc(p.codigo)}${sin ? ` · <b class="pocas">Sin stock</b>` : p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom">${esc(p.nombre)}</h3>
-        <div class="precios"><div class="tachado">${pesos(pr.tachado)}</div><div class="precio">${pesos(pr.final)}</div>
-        <div class="sub">${pr.may ? "Precio mayorista" : `Por transferencia · ${pesos(p.precio)} con tarjeta`}</div></div>
-        <button class="add" type="button" data-add="${esc(p.codigo)}" ${sin ? "disabled" : ""}>${sin ? "Sin stock" : "Agregar"}</button></div>
+    return `<article class="card${sin ? " agotado" : ""}">
+      <div class="foto" style="background:${c.color}"><img src="img/p/${esc(p.codigo)}.webp" alt="${esc(p.nombre)}" loading="lazy" width="600" height="450" onerror="this.remove()">
+        ${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}${sin ? `<em class="sin">Sin stock</em>` : ""}</div>
+      <div class="info"><span class="cod">${esc(c.nombre)}${!sin && p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom">${esc(p.nombre)}</h3>
+        <div class="precios">${pr.tachado ? `<div class="tachado">${pesos(pr.tachado)}</div>` : ""}<div class="precio">${pesos(pr.final)}</div>
+        ${pr.may ? `<div class="sub">Precio mayorista</div>` : ""}</div>
+        <button class="add" type="button" data-add="${esc(p.codigo)}" ${sin ? "disabled" : ""} aria-label="Agregar ${esc(p.nombre)}">${sin ? "Sin stock" : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar`}</button></div>
     </article>`;
   }).join("") : `<p class="vacio">No encontramos productos con esa búsqueda.</p>`;
 }
@@ -95,8 +105,8 @@ function pintarCarro() {
       <span class="sub">${pesos(precios(p).final)} c/u</span></div>`).join("") : `<p class="nota">Todavía no agregaste productos.</p>`;
   const falta = m && t.final < CONFIG.minimoMayorista;
   $("#carro-pie").innerHTML = t.items.length ? `
-    ${m ? "" : `<div class="fila"><span>Con tarjeta</span><span>${pesos(t.lista)}</span></div>`}
-    <div class="fila total"><span>${m ? "Total mayorista" : "Por transferencia"}</span><span>${pesos(t.final)}</span></div>
+    ${m ? `<div class="fila"><span>Precio de lista</span><span class="tachado">${pesos(t.lista)}</span></div>` : ""}
+    <div class="fila total"><span>${m ? "Total mayorista" : "Total"}</span><span>${pesos(t.final)}</span></div>
     ${falta ? `<div class="alerta">Te faltan ${pesos(CONFIG.minimoMayorista - t.final)} para la compra mínima mayorista.</div>` : ""}
     <button class="cta" type="button" id="ir-checkout" ${falta ? "disabled" : ""}>Finalizar compra</button>` : "";
   guardar("carro", carro);
@@ -150,16 +160,17 @@ function dlgCheckout() {
       <label class="op"><input type="radio" name="entrega" value="retiro"><span><b>Retiro en el local</b><small>Junín, Mendoza. Te avisamos cuando esté listo.</small></span></label>
     </fieldset>
     <fieldset class="opciones" style="border:0;padding:0;margin:0"><legend class="campo">Pago</legend>
-      <label class="op"><input type="radio" name="pago" value="transf" checked><span><b>Transferencia · ${pesos(t.final)}</b><small>${m ? "Precio mayorista." : `Con ${CONFIG.descTransferencia * 100}% de descuento.`} Te mostramos el alias al confirmar.</small></span></label>
-      <label class="op"><input type="radio" name="pago" value="tarjeta"><span><b>Tarjeta de crédito o débito · ${pesos(m ? t.final : t.lista)}</b><small>Pagás en Mercado Pago, en 1 pago.</small></span></label>
+      <label class="op"><input type="radio" name="pago" value="transf" checked><span><b>Transferencia</b><small>Te mostramos el alias al confirmar.</small></span></label>
+      <label class="op"><input type="radio" name="pago" value="tarjeta"><span><b>Tarjeta de crédito o débito</b><small>Pagás en Mercado Pago.</small></span></label>
     </fieldset>
+    <div class="fila total"><span>Total</span><span>${pesos(t.final)}</span></div>
     <button class="cta">Confirmar pedido</button><button class="btn-g" type="button" data-cerrar-dlg>Volver</button></form>`;
   d.showModal();
   $("form", d).addEventListener("submit", (e) => {
     e.preventDefault();
     const datos = Object.fromEntries(new FormData(e.target));
     const num = "ML-" + String(Date.now()).slice(-5);
-    const total = datos.pago === "tarjeta" && !m ? t.lista : t.final;
+    const total = t.final;
     const pedidos = leer("pedidos", []); pedidos.unshift({ num, nombre: datos.nombre, total, pago: datos.pago, entrega: datos.entrega, may: !!m }); guardar("pedidos", pedidos.slice(0, 20));
     d.innerHTML = `<div class="ok-box"><div class="circ">✓</div><h2>¡Pedido ${num} recibido!</h2>
       <p>${datos.pago === "transf" ? `Transferí ${pesos(total)} al alias <b>${CONFIG.alias}</b> y mandanos el comprobante por WhatsApp.` : "En la tienda real, acá se abre Mercado Pago para pagar con tarjeta."}</p>
@@ -204,13 +215,14 @@ function refrescar() { pintarCats(); pintarIntro(); pintarGrilla(); pintarCarro(
 
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, a"); if (!b) return;
-  if (b.dataset.cat) { filtro.cat = b.dataset.cat; pintarCats(); pintarGrilla(); }
+  if (b.dataset.cat) { filtro.cat = b.dataset.cat; pintarCats(); pintarGrilla(); if (b.classList.contains("tile")) $("#barra").scrollIntoView({ behavior: "smooth" }); }
   else if (b.dataset.add) { carro[b.dataset.add] = (carro[b.dataset.add] || 0) + 1; pintarCarro(); toast("Agregado al pedido"); }
   else if (b.dataset.mas) { carro[b.dataset.mas]++; pintarCarro(); }
   else if (b.dataset.menos) { if (--carro[b.dataset.menos] <= 0) delete carro[b.dataset.menos]; pintarCarro(); }
   else if (b.id === "btn-carro") abrirCarro(true);
   else if (b.hasAttribute("data-cerrar")) abrirCarro(false);
   else if (b.id === "ir-checkout") dlgCheckout();
+  else if (b.id === "btn-may-hero" || b.id === "btn-may-pie") dlgCuenta();
   else if (b.id === "btn-cuenta") { if (cliente()) { sesion = null; guardar("sesion", null); refrescar(); toast("Saliste de la cuenta mayorista"); } else dlgCuenta(); }
   else if (b.dataset.modo) dlgCuenta(b.dataset.modo);
   else if (b.hasAttribute("data-cerrar-dlg")) b.closest("dialog").close();

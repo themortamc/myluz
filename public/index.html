@@ -33,7 +33,7 @@
 
 <main id="vista-tienda">
   <section class="w intro" id="intro"></section>
-  <section class="w barra">
+  <section class="w barra" id="barra">
     <p id="conteo" aria-live="polite"></p>
     <label class="orden">Ordenar
       <select id="orden"><option value="rel">Relevancia</option><option value="asc">Menor precio</option><option value="desc">Mayor precio</option><option value="az">A–Z</option></select>
@@ -61,7 +61,12 @@
   <section data-panel="ped" hidden><div class="tabla" id="tabla-ped"></div></section>
 </main>
 
-<footer class="pie"><div class="w">myluz · Junín, Mendoza · <a href="#" data-ir="panel">Panel del negocio (demo)</a></div></footer>
+<footer class="pie"><div class="w pie-in">
+  <div><a class="logo" href="#" data-ir="tienda"><span class="sol" aria-hidden="true"></span><span>my<b>luz</b></span></a><p>Multirubro en Junín, Mendoza. Envíos a toda la provincia.</p></div>
+  <div><h3>Comprar</h3><p>Envío por Correo Argentino<br>Retiro en el local<br>Transferencia o tarjeta</p></div>
+  <div><h3>Mayoristas</h3><p>Registrate y, cuando aprobemos tu cuenta, vas a ver tus precios.</p><button class="btn-l" type="button" id="btn-may-pie">Soy mayorista</button></div>
+  <div><h3>Prototipo</h3><p>Productos y precios de ejemplo.<br><a href="#" data-ir="panel">Panel del negocio (demo)</a></p></div>
+</div></footer>
 
 <aside class="cajon" id="cajon" aria-label="Carrito" hidden>
   <div class="cajon-in">

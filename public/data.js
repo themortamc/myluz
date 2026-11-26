@@ -1,13 +1,13 @@
 // Productos de EJEMPLO para el prototipo. En la tienda real salen del programa de gestión del negocio.
 window.CATEGORIAS = [
-  { id: "bazar", nombre: "Bazar y cocina", color: "#f3e6cf" },
-  { id: "iluminacion", nombre: "Iluminación", color: "#fbecc0" },
-  { id: "ferreteria", nombre: "Ferretería", color: "#dfe7ef" },
-  { id: "libreria", nombre: "Librería", color: "#e6e1f3" },
-  { id: "jugueteria", nombre: "Juguetería", color: "#f6dede" },
-  { id: "electronica", nombre: "Electrónica", color: "#dcefe8" },
-  { id: "limpieza", nombre: "Limpieza", color: "#e0eef6" },
-  { id: "regaleria", nombre: "Regalería", color: "#f4e3ef" },
+  { id: "bazar", foto: "BZ-1003", nombre: "Bazar y cocina", color: "#f3e6cf" },
+  { id: "iluminacion", foto: "IL-2001", nombre: "Iluminación", color: "#fbecc0" },
+  { id: "ferreteria", foto: "FE-3001", nombre: "Ferretería", color: "#dfe7ef" },
+  { id: "libreria", foto: "LI-4002", nombre: "Librería", color: "#e6e1f3" },
+  { id: "jugueteria", foto: "JU-5001", nombre: "Juguetería", color: "#f6dede" },
+  { id: "electronica", foto: "EL-6003", nombre: "Electrónica", color: "#dcefe8" },
+  { id: "limpieza", foto: "LM-7001", nombre: "Limpieza", color: "#e0eef6" },
+  { id: "regaleria", foto: "RG-8003", nombre: "Regalería", color: "#f4e3ef" },
 ];
 
 window.PRODUCTOS = [

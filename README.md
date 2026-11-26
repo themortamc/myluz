@@ -9,7 +9,7 @@
 [![Cloudflare Workers](https://img.shields.io/badge/deploy-Cloudflare%20Workers-f38020?style=flat-square&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
 [![Sin dependencias](https://img.shields.io/badge/dependencias-0-1f7a4d?style=flat-square)](#-stack)
 
-<img src="docs/captura-tienda.png" alt="Tienda de myluz: catálogo con precio de lista tachado y precio por transferencia" width="860">
+<img src="docs/captura-tienda.png" alt="Tienda de myluz: portada, categorías con foto y catálogo" width="860">
 
 </div>
 
@@ -20,7 +20,7 @@
 | | |
 |---|---|
 | 🛒 **Catálogo y carrito** | Categorías, buscador por nombre o código, orden por precio y carrito que se guarda en el navegador. |
-| 🏷️ **Precios claros** | Precio de lista (tarjeta) tachado y, grande, el precio pagando por transferencia. Descuentos reales, sin trucos. |
+| 🏷️ **Precios claros** | El público ve el precio de lista. Los descuentos que se muestran son siempre reales. |
 | 🔐 **Mayoristas y revendedores** | Se registran, el negocio los aprueba y, al entrar, ven **su** precio en la misma tienda. Compra mínima configurable. |
 | 🎚️ **Descuento por cliente** | Desde el panel, el dueño le pone a cada mayorista su porcentaje. |
 | 📦 **Importación desde el programa del negocio** | Se sube el archivo exportado (CSV) y se actualizan productos, precios y stock. |
@@ -41,11 +41,11 @@
 ## 🧮 Cómo se calculan los precios
 
 ```text
-precio de lista (tarjeta) ──┬── público  → lista − descuento por transferencia
-                            └── mayorista → lista − descuento del cliente (lo define el negocio)
+precio de lista ──┬── público   → precio de lista
+                  └── mayorista → lista tachada + su precio (lista − descuento del cliente, lo define el negocio)
 ```
 
-Todos los porcentajes son configurables y se definen con el negocio.
+Descuentos por medio de pago, recargos y compra mínima se definen con el negocio y son configurables.
 
 ## 🧰 Stack
 
@@ -58,6 +58,7 @@ public/
 ├── styles.css   # diseño (mobile first)
 ├── app.js       # catálogo, precios, carrito, cuentas mayoristas y panel
 ├── data.js      # productos de EJEMPLO
+├── img/p/       # fotos de ejemplo (Pixabay, ver docs/CREDITOS.md)
 └── _headers     # cabeceras de seguridad (CSP, noindex, etc.)
 ```
 
