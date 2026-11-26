@@ -54,7 +54,7 @@ function pintarIntro() {
        <div class="chips"><span class="chip may">Tu descuento: ${m.desc}% sobre lista</span><span class="chip">Envíos a toda Mendoza</span></div></div></div>`
     : `<div class="hero"><div class="hero-txt"><span class="eyebrow">Multirubro en Junín, Mendoza</span>
        <h1>Todo para tu casa,<br>en un solo lugar</h1>
-       <p>Bazar, iluminación, ferretería, librería, juguetería y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
+       <p>Bazar, perfumería, librería, juguetería, electrónica y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
        <div class="hero-cta"><a class="btn-p" href="#grilla">Ver productos</a><button class="btn-l" type="button" id="btn-may-hero">Soy mayorista o revendedor</button></div></div>
        <ul class="beneficios">
          <li><b>Envíos a toda Mendoza</b><span>Por Correo Argentino</span></li>
