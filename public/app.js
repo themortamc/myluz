@@ -27,7 +27,11 @@ let filtro = { cat: "todas", q: "", orden: "rel" };
 // shortcut: login de muestra en el navegador (el prototipo no tiene datos reales); en la tienda real va con Supabase Auth.
 const ADMIN_DEMO = { usuario: "admin", pass: "demo" };
 let admin = leer("admin", false);
-let ocultos = new Set(leer("ocultos", [])); // códigos que el negocio ocultó desde el panel
+// Stock visible por producto (panel): vacío = se muestra el stock real; 0 = el producto no aparece en la tienda.
+// Nunca se muestra más que el stock real, para no vender lo que no hay.
+let stockVis = leer("stockVisible", {});
+const stockDe = (p) => (stockVis[p.codigo] == null ? p.stock : Math.min(stockVis[p.codigo], p.stock));
+const visible = (p) => stockVis[p.codigo] !== 0;
 
 const cliente = () => mayoristas.find((m) => m.id === sesion && m.estado === "aprobado") || null;
 const catDe = (id) => window.CATEGORIAS.find((c) => c.id === id) || { nombre: id, color: "#eee" };
@@ -79,7 +83,7 @@ function pintarIntro() {
 
 function lista() {
   const q = filtro.q.trim().toLowerCase();
-  let l = productos.filter((p) => !ocultos.has(p.codigo) && (filtro.cat === "todas" || p.categoria === filtro.cat) && (!q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)));
+  let l = productos.filter((p) => visible(p) && (filtro.cat === "todas" || p.categoria === filtro.cat) && (!q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)));
   if (filtro.orden === "asc") l.sort((a, b) => a.precio - b.precio);
   if (filtro.orden === "desc") l.sort((a, b) => b.precio - a.precio);
   if (filtro.orden === "az") l.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
@@ -87,21 +91,21 @@ function lista() {
 }
 
 function tarjeta(p) {
-  const c = catDe(p.categoria), pr = precios(p), sin = p.stock <= 0, url = `#p/${encodeURIComponent(p.codigo)}`;
+  const c = catDe(p.categoria), pr = precios(p), st = stockDe(p), sin = st <= 0, url = `#p/${encodeURIComponent(p.codigo)}`;
   return `<article class="card${sin ? " agotado" : ""}">
       <a class="foto" href="${url}" style="background:${c.color}" tabindex="-1" aria-hidden="true"><img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450">
         ${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}${sin ? `<em class="sin">Sin stock</em>` : ""}</a>
-      <div class="info"><span class="cod">${esc(c.nombre)}${!sin && p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom"><a href="${url}">${esc(p.nombre)}</a></h3>
+      <div class="info"><span class="cod">${esc(c.nombre)}${!sin && st < 5 ? ` · <b class="pocas">Últimas ${st}</b>` : ""}</span><h3 class="nom"><a href="${url}">${esc(p.nombre)}</a></h3>
         <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio">${pesos(pr.final)}</div><div class="sub">Precio de revendedor</div>` : preciosPublico(pr)}</div>
         <button class="add" type="button" data-add="${esc(p.codigo)}" ${sin ? "disabled" : ""} aria-label="Agregar ${esc(p.nombre)}">${sin ? "Sin stock" : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar`}</button></div>
     </article>`;
 }
 
 function pintarFicha(cod) {
-  const p = productos.find((x) => x.codigo === cod && !ocultos.has(x.codigo)), el = $("#vista-producto");
+  const p = productos.find((x) => x.codigo === cod && visible(x)), el = $("#vista-producto");
   if (!p) { el.innerHTML = `<div class="ficha-vacia"><h1>Este producto no está disponible</h1><p class="nota">Puede que se haya agotado o que el negocio lo haya sacado de la tienda.</p><a class="btn-p" href="#">Ver todos los productos</a></div>`; return; }
-  const c = catDe(p.categoria), pr = precios(p), sin = p.stock <= 0;
-  const rel = productos.filter((x) => x.categoria === p.categoria && x.codigo !== p.codigo && !ocultos.has(x.codigo)).slice(0, 4);
+  const c = catDe(p.categoria), pr = precios(p), st = stockDe(p), sin = st <= 0;
+  const rel = productos.filter((x) => x.categoria === p.categoria && x.codigo !== p.codigo && visible(x)).slice(0, 4);
   document.title = `${p.nombre} · myluz`;
   el.innerHTML = `<nav class="migas" aria-label="Ruta"><a href="#">Inicio</a><span>/</span><a href="#" data-cat-ficha="${c.id}">${esc(c.nombre)}</a><span>/</span><span aria-current="page">${esc(p.nombre)}</span></nav>
     <div class="ficha-grid">
@@ -110,7 +114,7 @@ function pintarFicha(cod) {
         <span class="cod">${esc(c.nombre)} · Cód. ${esc(p.codigo)}</span>
         <h1>${esc(p.nombre)}</h1>
         <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio grande">${pesos(pr.final)}</div><div class="sub">Tu precio de revendedor</div>` : preciosPublico(pr, true)}</div>
-        <p class="disp ${sin ? "no" : p.stock < 5 ? "pocas" : "si"}">${sin ? "Sin stock por ahora" : p.stock < 5 ? `Quedan ${p.stock} unidades` : "Disponible"}</p>
+        <p class="disp ${sin ? "no" : st < 5 ? "pocas" : "si"}">${sin ? "Sin stock por ahora" : st < 5 ? `Quedan ${st} unidades` : "Disponible"}</p>
         ${sin ? "" : `<div class="comprar"><div class="qty grande" role="group" aria-label="Cantidad"><button type="button" data-cant="-1" aria-label="Restar uno">−</button><output id="cant">1</output><button type="button" data-cant="1" aria-label="Sumar uno">+</button></div>
           <button class="cta" type="button" data-add-ficha="${esc(p.codigo)}">Agregar al pedido</button></div>`}
         <div class="desc"><h2>Descripción</h2><p>${esc(p.descripcion || "Sin descripción por ahora.")}</p></div>
@@ -279,11 +283,12 @@ function dlgCheckout() {
 function pintarProductosPanel() {
   const q = ($("#q-panel")?.value || "").trim().toLowerCase();
   const l = productos.filter((p) => !q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q));
-  $("#tabla-prod").innerHTML = `<p class="nota">${productos.length - ocultos.size} visibles · ${ocultos.size} ocultos</p>` + l.map((p) => {
-    const vis = !ocultos.has(p.codigo);
+  const ocultosN = productos.filter((p) => !visible(p)).length;
+  $("#tabla-prod").innerHTML = `<p class="nota">${productos.length - ocultosN} visibles · ${ocultosN} ocultos. <b>Stock visible</b>: lo que ve el cliente. Vacío = el stock real; 0 = el producto no aparece en la tienda.</p>` + l.map((p) => {
+    const vis = visible(p), v = stockVis[p.codigo];
     return `<div class="reg prod${vis ? "" : " oculto"}"><b>${esc(p.nombre)}</b>
-      <div class="der"><span class="sub">Contado ${pesos(p.precio)} · lista ${pesos(window.Precio.precioLista(p.precio))} · stock ${p.stock}</span>
-        <label class="switch"><input type="checkbox" data-vis="${esc(p.codigo)}" ${vis ? "checked" : ""}><span>${vis ? "Visible" : "Oculto"}</span></label></div>
+      <div class="der"><span class="sub">Contado ${pesos(p.precio)} · lista ${pesos(window.Precio.precioLista(p.precio))} · stock real ${p.stock}</span>
+        <label class="stock-vis">Stock visible<input type="number" min="0" step="1" inputmode="numeric" data-stock-vis="${esc(p.codigo)}" value="${v == null ? "" : v}" placeholder="${p.stock}"></label></div>
       <span class="sub">${esc(p.codigo)} · ${esc(catDe(p.categoria).nombre)}</span></div>`;
   }).join("");
 }
@@ -330,11 +335,11 @@ function refrescar() { pintarCats(); pintarIntro(); pintarGrilla(); pintarCarro(
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, a"); if (!b) return;
   if (b.dataset.cat) { filtro.cat = b.dataset.cat; pintarCats(); pintarGrilla(); if (b.classList.contains("tile")) $("#barra").scrollIntoView({ behavior: "smooth" }); }
-  else if (b.dataset.cant) { const o = $("#cant"); o.textContent = Math.max(1, Math.min(99, Number(o.textContent) + Number(b.dataset.cant))); }
-  else if (b.dataset.addFicha) { const c = b.dataset.addFicha, n = Number($("#cant").textContent); carro[c] = (carro[c] || 0) + n; pintarCarro(); toast(`Agregaste ${n} al pedido`); }
+  else if (b.dataset.cant) { const o = $("#cant"); const p = productos.find((x) => x.codigo === decodeURIComponent(location.hash.slice(3))); o.textContent = Math.max(1, Math.min(p ? stockDe(p) : 99, Number(o.textContent) + Number(b.dataset.cant))); }
+  else if (b.dataset.addFicha) { const c = b.dataset.addFicha, n = Number($("#cant").textContent); const p = productos.find((x) => x.codigo === c), tope = stockDe(p), antes = carro[c] || 0; carro[c] = Math.min(tope, antes + n); pintarCarro(); toast(carro[c] - antes < n ? `Solo hay ${tope} disponibles` : `Agregaste ${n} al pedido`); }
   else if (b.dataset.catFicha) { e.preventDefault(); filtro.cat = b.dataset.catFicha; location.hash = ""; segunHash(); refrescar(); setTimeout(() => $("#barra").scrollIntoView(), 0); }
-  else if (b.dataset.add) { carro[b.dataset.add] = (carro[b.dataset.add] || 0) + 1; pintarCarro(); toast("Agregado al pedido"); }
-  else if (b.dataset.mas) { carro[b.dataset.mas]++; pintarCarro(); }
+  else if (b.dataset.add) { const c = b.dataset.add, tope = stockDe(productos.find((x) => x.codigo === c)); if ((carro[c] || 0) >= tope) return toast(`Solo hay ${tope} disponibles`); carro[c] = (carro[c] || 0) + 1; pintarCarro(); toast("Agregado al pedido"); }
+  else if (b.dataset.mas) { const c = b.dataset.mas, tope = stockDe(productos.find((x) => x.codigo === c)); if (carro[c] >= tope) return toast(`Solo hay ${tope} disponibles`); carro[c]++; pintarCarro(); }
   else if (b.dataset.menos) { if (--carro[b.dataset.menos] <= 0) delete carro[b.dataset.menos]; pintarCarro(); }
   else if (b.id === "btn-carro") abrirCarro(true);
   else if (b.hasAttribute("data-cerrar")) abrirCarro(false);
@@ -351,10 +356,14 @@ $("#cajon").addEventListener("click", (e) => { if (e.target.id === "cajon") abri
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") abrirCarro(false); });
 document.addEventListener("change", (e) => {
   if (e.target.dataset.pct) { const m = mayoristas.find((x) => x.id == e.target.dataset.pct); m.desc = Math.max(0, Math.min(80, Number(e.target.value) || 0)); guardar("revendedores", mayoristas); toast(`Descuento de ${m.nombre}: ${m.desc}%`); }
-  if (e.target.dataset.vis) {
-    const c = e.target.dataset.vis; e.target.checked ? ocultos.delete(c) : ocultos.add(c);
-    guardar("ocultos", [...ocultos]); delete carro[c]; pintarProductosPanel(); pintarGrilla(); pintarCarro();
-    toast(e.target.checked ? "El producto se ve en la tienda" : "Producto oculto en la tienda");
+  if (e.target.dataset.stockVis != null) {
+    const c = e.target.dataset.stockVis, raw = e.target.value.trim(), p = productos.find((x) => x.codigo === c);
+    if (raw === "") delete stockVis[c]; else stockVis[c] = Math.max(0, Math.floor(Number(raw)) || 0);
+    guardar("stockVisible", stockVis);
+    const st = stockDe(p);
+    if (!visible(p) || st <= 0) delete carro[c]; else if (carro[c] > st) carro[c] = st;
+    pintarProductosPanel(); pintarGrilla(); pintarCarro();
+    toast(raw === "" ? `${p.nombre}: muestra el stock real (${p.stock})` : stockVis[c] === 0 ? "Producto oculto en la tienda" : `${p.nombre}: se muestran ${st} unidades${stockVis[c] > p.stock ? " (no puede superar el stock real)" : ""}`);
   }
   if (e.target.id === "orden") { filtro.orden = e.target.value; pintarGrilla(); }
   if (e.target.id === "csv" && e.target.files[0]) {
