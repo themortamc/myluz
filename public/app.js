@@ -81,7 +81,7 @@ function lista() {
 function tarjeta(p) {
   const c = catDe(p.categoria), pr = precios(p), sin = p.stock <= 0, url = `#p/${encodeURIComponent(p.codigo)}`;
   return `<article class="card${sin ? " agotado" : ""}">
-      <a class="foto" href="${url}" style="background:${c.color}" tabindex="-1" aria-hidden="true"><img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450" onerror="this.remove()">
+      <a class="foto" href="${url}" style="background:${c.color}" tabindex="-1" aria-hidden="true"><img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450">
         ${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}${sin ? `<em class="sin">Sin stock</em>` : ""}</a>
       <div class="info"><span class="cod">${esc(c.nombre)}${!sin && p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom"><a href="${url}">${esc(p.nombre)}</a></h3>
         <div class="precios">${pr.tachado ? `<div class="tachado">${pesos(pr.tachado)}</div>` : ""}<div class="precio">${pesos(pr.final)}</div>
@@ -98,7 +98,7 @@ function pintarFicha(cod) {
   document.title = `${p.nombre} · myluz`;
   el.innerHTML = `<nav class="migas" aria-label="Ruta"><a href="#">Inicio</a><span>/</span><a href="#" data-cat-ficha="${c.id}">${esc(c.nombre)}</a><span>/</span><span aria-current="page">${esc(p.nombre)}</span></nav>
     <div class="ficha-grid">
-      <div class="ficha-foto" style="background:${c.color}"><img src="img/p/${esc(p.codigo)}.webp" alt="${esc(p.nombre)}" width="600" height="450" onerror="this.remove()">${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}</div>
+      <div class="ficha-foto" style="background:${c.color}"><img src="img/p/${esc(p.codigo)}.webp" alt="${esc(p.nombre)}" width="600" height="450">${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}</div>
       <div class="ficha-info">
         <span class="cod">${esc(c.nombre)} · Cód. ${esc(p.codigo)}</span>
         <h1>${esc(p.nombre)}</h1>
@@ -310,6 +310,8 @@ $("#admin-salir").addEventListener("click", () => { admin = false; guardar("admi
 $("#q").addEventListener("input", (e) => { filtro.q = e.target.value; pintarGrilla(); });
 $("#q-panel").addEventListener("input", pintarProductosPanel);
 
+// Si falta una foto, se ve el color de la categoría (sin handlers inline: la CSP los bloquea).
+document.addEventListener("error", (e) => { if (e.target.tagName === "IMG") e.target.remove(); }, true);
 refrescar();
 function segunHash() {
   const h = location.hash;
