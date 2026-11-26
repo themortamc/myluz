@@ -40,3 +40,8 @@ Fotos de [Pixabay](https://pixabay.com), bajo la [licencia de contenido de Pixab
 | RG-8003 | [karriezhu](https://pixabay.com/photos/design-beauty-style-interior-1162219/) |
 | RG-8004 | [13748526](https://pixabay.com/photos/mate-tea-tea-drink-yerba-mate-6259745/) |
 | RG-8005 | [jarmoluk](https://pixabay.com/photos/clocks-time-idea-concept-257911/) |
+| ZA-9201 | [Tien-seven](https://pixabay.com/photos/shoes-sneakers-jeans-blue-converse-8026038/) |
+| ZA-9202 | [Couleur](https://pixabay.com/photos/sport-shoes-running-shoes-shoes-1470061/) |
+| ZA-9203 | [stux](https://pixabay.com/photos/beach-sand-sea-sandy-beach-3369140/) |
+| ZA-9204 | [reimoon0](https://pixabay.com/photos/slipper-indoor-shoes-living-room-704705/) |
+| ZA-9205 | [JillWellington](https://pixabay.com/photos/rain-boots-umbrella-wet-791893/) |

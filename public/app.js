@@ -54,7 +54,7 @@ function pintarIntro() {
        <div class="chips"><span class="chip may">Tu descuento: ${m.desc}% sobre lista</span><span class="chip">Envíos a toda Mendoza</span></div></div></div>`
     : `<div class="hero"><div class="hero-txt"><span class="eyebrow">Multirubro en Junín, Mendoza</span>
        <h1>Todo para tu casa,<br>en un solo lugar</h1>
-       <p>Bazar, perfumería, librería, juguetería, electrónica y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
+       <p>Bazar, perfumería, zapatería, librería, juguetería y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
        <div class="hero-cta"><a class="btn-p" href="#grilla">Ver productos</a><button class="btn-l" type="button" id="btn-may-hero">Soy mayorista o revendedor</button></div></div>
        <ul class="beneficios">
          <li><b>Envíos a toda Mendoza</b><span>Por Correo Argentino</span></li>
@@ -78,20 +78,49 @@ function lista() {
   return l;
 }
 
-function pintarGrilla() {
-  const l = lista();
-  $("#conteo").textContent = `${l.length} producto${l.length === 1 ? "" : "s"}`;
-  $("#grilla").innerHTML = l.length ? l.map((p) => {
-    const c = catDe(p.categoria), pr = precios(p), sin = p.stock <= 0;
-    return `<article class="card${sin ? " agotado" : ""}">
-      <div class="foto" style="background:${c.color}"><img src="img/p/${esc(p.codigo)}.webp" alt="${esc(p.nombre)}" loading="lazy" width="600" height="450" onerror="this.remove()">
-        ${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}${sin ? `<em class="sin">Sin stock</em>` : ""}</div>
-      <div class="info"><span class="cod">${esc(c.nombre)}${!sin && p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom">${esc(p.nombre)}</h3>
+function tarjeta(p) {
+  const c = catDe(p.categoria), pr = precios(p), sin = p.stock <= 0, url = `#p/${encodeURIComponent(p.codigo)}`;
+  return `<article class="card${sin ? " agotado" : ""}">
+      <a class="foto" href="${url}" style="background:${c.color}" tabindex="-1" aria-hidden="true"><img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450" onerror="this.remove()">
+        ${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}${sin ? `<em class="sin">Sin stock</em>` : ""}</a>
+      <div class="info"><span class="cod">${esc(c.nombre)}${!sin && p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom"><a href="${url}">${esc(p.nombre)}</a></h3>
         <div class="precios">${pr.tachado ? `<div class="tachado">${pesos(pr.tachado)}</div>` : ""}<div class="precio">${pesos(pr.final)}</div>
         ${pr.may ? `<div class="sub">Precio mayorista</div>` : ""}</div>
         <button class="add" type="button" data-add="${esc(p.codigo)}" ${sin ? "disabled" : ""} aria-label="Agregar ${esc(p.nombre)}">${sin ? "Sin stock" : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar`}</button></div>
     </article>`;
-  }).join("") : `<p class="vacio">No encontramos productos con esa búsqueda.</p>`;
+}
+
+function pintarFicha(cod) {
+  const p = productos.find((x) => x.codigo === cod && !ocultos.has(x.codigo)), el = $("#vista-producto");
+  if (!p) { el.innerHTML = `<div class="ficha-vacia"><h1>Este producto no está disponible</h1><p class="nota">Puede que se haya agotado o que el negocio lo haya sacado de la tienda.</p><a class="btn-p" href="#">Ver todos los productos</a></div>`; return; }
+  const c = catDe(p.categoria), pr = precios(p), sin = p.stock <= 0;
+  const rel = productos.filter((x) => x.categoria === p.categoria && x.codigo !== p.codigo && !ocultos.has(x.codigo)).slice(0, 4);
+  document.title = `${p.nombre} · myluz`;
+  el.innerHTML = `<nav class="migas" aria-label="Ruta"><a href="#">Inicio</a><span>/</span><a href="#" data-cat-ficha="${c.id}">${esc(c.nombre)}</a><span>/</span><span aria-current="page">${esc(p.nombre)}</span></nav>
+    <div class="ficha-grid">
+      <div class="ficha-foto" style="background:${c.color}"><img src="img/p/${esc(p.codigo)}.webp" alt="${esc(p.nombre)}" width="600" height="450" onerror="this.remove()">${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}</div>
+      <div class="ficha-info">
+        <span class="cod">${esc(c.nombre)} · Cód. ${esc(p.codigo)}</span>
+        <h1>${esc(p.nombre)}</h1>
+        <div class="precios">${pr.tachado ? `<div class="tachado">${pesos(pr.tachado)}</div>` : ""}<div class="precio grande">${pesos(pr.final)}</div>${pr.may ? `<div class="sub">Tu precio mayorista</div>` : ""}</div>
+        <p class="disp ${sin ? "no" : p.stock < 5 ? "pocas" : "si"}">${sin ? "Sin stock por ahora" : p.stock < 5 ? `Quedan ${p.stock} unidades` : "Disponible"}</p>
+        ${sin ? "" : `<div class="comprar"><div class="qty grande" role="group" aria-label="Cantidad"><button type="button" data-cant="-1" aria-label="Restar uno">−</button><output id="cant">1</output><button type="button" data-cant="1" aria-label="Sumar uno">+</button></div>
+          <button class="cta" type="button" data-add-ficha="${esc(p.codigo)}">Agregar al pedido</button></div>`}
+        <div class="desc"><h2>Descripción</h2><p>${esc(p.descripcion || "Sin descripción por ahora.")}</p></div>
+        <ul class="ficha-extra">
+          <li><b>Envío a toda Mendoza</b><span>Por Correo Argentino. El costo se calcula según el destino.</span></li>
+          <li><b>Retiro en el local</b><span>Junín, Mendoza. Te avisamos cuando esté listo.</span></li>
+          <li><b>Pagás como quieras</b><span>Transferencia o tarjeta de crédito y débito.</span></li>
+        </ul>
+      </div>
+    </div>
+    ${rel.length ? `<h2 class="titulo">También en ${esc(c.nombre)}</h2><div class="grilla rel">${rel.map(tarjeta).join("")}</div>` : ""}`;
+}
+
+function pintarGrilla() {
+  const l = lista();
+  $("#conteo").textContent = `${l.length} producto${l.length === 1 ? "" : "s"}`;
+  $("#grilla").innerHTML = l.length ? l.map((p) => tarjeta(p)).join("") : `<p class="vacio">No encontramos productos con esa búsqueda.</p>`;
 }
 
 function totales() {
@@ -168,6 +197,7 @@ function dlgCheckout() {
       <label class="op"><input type="radio" name="pago" value="tarjeta"><span><b>Tarjeta de crédito o débito</b><small>Pagás en Mercado Pago.</small></span></label>
     </fieldset>
     <div class="fila total"><span>Total</span><span>${pesos(t.final)}</span></div>
+    <p class="legal-ok">Al confirmar aceptás los <a href="legales/terminos/" target="_blank">términos y condiciones</a> y la <a href="legales/privacidad/" target="_blank">política de privacidad</a>.</p>
     <button class="cta">Confirmar pedido</button><button class="btn-g" type="button" data-cerrar-dlg>Volver</button></form>`;
   d.showModal();
   $("form", d).addEventListener("submit", (e) => {
@@ -224,18 +254,22 @@ function importarCSV(texto) {
 }
 
 function ir(vista) {
-  $("#vista-tienda").hidden = vista !== "tienda"; $("#vista-panel").hidden = vista !== "panel";
+  $("#vista-tienda").hidden = vista !== "tienda"; $("#vista-panel").hidden = vista !== "panel"; $("#vista-producto").hidden = vista !== "producto";
+  if (vista !== "producto") document.title = "myluz · prototipo de tienda online";
   $("#login-panel").hidden = admin; $("#panel-contenido").hidden = !admin;
   if (vista === "panel" && admin) pintarPanel();
   if (vista === "panel" && !admin) setTimeout(() => $("#form-admin [name=usuario]").focus(), 0);
   window.scrollTo(0, 0);
 }
 
-function refrescar() { pintarCats(); pintarIntro(); pintarGrilla(); pintarCarro(); }
+function refrescar() { pintarCats(); pintarIntro(); pintarGrilla(); pintarCarro(); if (location.hash.startsWith("#p/")) pintarFicha(decodeURIComponent(location.hash.slice(3))); }
 
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, a"); if (!b) return;
   if (b.dataset.cat) { filtro.cat = b.dataset.cat; pintarCats(); pintarGrilla(); if (b.classList.contains("tile")) $("#barra").scrollIntoView({ behavior: "smooth" }); }
+  else if (b.dataset.cant) { const o = $("#cant"); o.textContent = Math.max(1, Math.min(99, Number(o.textContent) + Number(b.dataset.cant))); }
+  else if (b.dataset.addFicha) { const c = b.dataset.addFicha, n = Number($("#cant").textContent); carro[c] = (carro[c] || 0) + n; pintarCarro(); toast(`Agregaste ${n} al pedido`); }
+  else if (b.dataset.catFicha) { e.preventDefault(); filtro.cat = b.dataset.catFicha; location.hash = ""; segunHash(); refrescar(); setTimeout(() => $("#barra").scrollIntoView(), 0); }
   else if (b.dataset.add) { carro[b.dataset.add] = (carro[b.dataset.add] || 0) + 1; pintarCarro(); toast("Agregado al pedido"); }
   else if (b.dataset.mas) { carro[b.dataset.mas]++; pintarCarro(); }
   else if (b.dataset.menos) { if (--carro[b.dataset.menos] <= 0) delete carro[b.dataset.menos]; pintarCarro(); }
@@ -277,6 +311,11 @@ $("#q").addEventListener("input", (e) => { filtro.q = e.target.value; pintarGril
 $("#q-panel").addEventListener("input", pintarProductosPanel);
 
 refrescar();
-const segunHash = () => ir(location.hash === "#panel" ? "panel" : "tienda");
-if (location.hash === "#panel") ir("panel");
+function segunHash() {
+  const h = location.hash;
+  if (h === "#panel") return ir("panel");
+  if (h.startsWith("#p/")) { pintarFicha(decodeURIComponent(h.slice(3))); return ir("producto"); }
+  ir("tienda");
+}
+if (location.hash === "#panel" || location.hash.startsWith("#p/")) segunHash();
 window.addEventListener("hashchange", segunHash);

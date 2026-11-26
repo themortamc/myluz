@@ -20,11 +20,13 @@
 | | |
 |---|---|
 | 🛒 **Catálogo y carrito** | Categorías, buscador por nombre o código, orden por precio y carrito que se guarda en el navegador. |
+| 🧾 **Página de cada producto** | Foto grande, descripción, disponibilidad, cantidad y productos relacionados, con dirección propia para compartir. |
 | 🏷️ **Precios claros** | El público ve el precio de lista. Los descuentos que se muestran son siempre reales. |
 | 🔐 **Mayoristas y revendedores** | Se registran, el negocio los aprueba y, al entrar, ven **su** precio en la misma tienda. Compra mínima configurable. |
 | 🎚️ **Panel del negocio** | Con usuario y contraseña: ocultar o mostrar productos, aprobar mayoristas y ponerle a cada uno su descuento, ver pedidos. |
 | 📦 **Importación desde el programa del negocio** | Se sube el archivo exportado (CSV) y se actualizan productos, precios y stock. |
 | 🚚 **Entrega y pago** | Envío a toda Mendoza por Correo Argentino o retiro en el local. Transferencia o tarjeta (Mercado Pago). |
+| ⚖️ **Legales argentinos** | Términos y condiciones, privacidad (Ley 25.326), cambios y garantía, condiciones para mayoristas, botón de arrepentimiento y enlace a Defensa del Consumidor. |
 | 📱 **Pensada para el celular** | Se usa cómoda con una mano; anda igual en la compu. |
 
 <table>
@@ -57,7 +59,8 @@ public/
 ├── index.html   # estructura de la tienda y del panel
 ├── styles.css   # diseño (mobile first)
 ├── app.js       # catálogo, precios, carrito, cuentas mayoristas y panel
-├── data.js      # productos de EJEMPLO
+├── data.js      # productos y descripciones de EJEMPLO
+├── legales/     # páginas legales (se generan con tools/legales.py)
 ├── img/p/       # fotos de ejemplo (Pixabay, ver docs/CREDITOS.md)
 └── _headers     # cabeceras de seguridad (CSP, noindex, etc.)
 ```
