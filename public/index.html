@@ -15,7 +15,7 @@
 
 <header class="top">
   <div class="w top-in">
-    <a class="logo" href="#" aria-label="myluz, inicio" data-ir="tienda"><span class="sol" aria-hidden="true"></span><span>my<b>luz</b></span></a>
+    <a class="logo" href="#" aria-label="myluz, inicio" data-ir="tienda"><img class="logo-img" src="img/logo.webp" alt="" width="44" height="44"><span>my<b>luz</b></span></a>
     <label class="buscar"><span class="sr">Buscar productos</span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
       <input id="q" type="search" placeholder="Buscar por nombre o código" autocomplete="off">
@@ -72,11 +72,11 @@
     <div class="tabla" id="tabla-prod"></div>
   </section>
   <section data-panel="may" hidden>
-    <p class="nota">Cada mayorista o revendedor se registra en la tienda. Desde acá lo aprobás y le ponés su descuento sobre el precio de lista.</p>
+    <p class="nota">Cada mayorista o revendedor se registra en la tienda. Desde acá lo aprobás y le ponés su descuento sobre el precio de contado.</p>
     <div class="tabla" id="tabla-may"></div>
   </section>
   <section data-panel="imp" hidden>
-    <p class="nota">Subís el archivo que exporta el programa y se actualizan productos, precios y stock. Probá con un CSV con columnas: <code>codigo,nombre,categoria,precio,stock</code>.</p>
+    <p class="nota">Subís el archivo que exporta el programa y se actualizan productos, precios y stock. El precio es el de contado: la tienda calcula sola el de lista (tarjeta, 3 cuotas sin interés) y el 10% off con transferencia. Probá con un CSV con columnas: <code>codigo,nombre,categoria,precio,stock</code>.</p>
     <label class="subir"><input type="file" id="csv" accept=".csv,text/csv"><span>Elegir archivo CSV</span></label>
     <p id="imp-res" class="nota" aria-live="polite"></p>
   </section>
@@ -85,7 +85,7 @@
 </main>
 
 <footer class="pie"><div class="w pie-in">
-  <div><a class="logo" href="#" data-ir="tienda"><span class="sol" aria-hidden="true"></span><span>my<b>luz</b></span></a><p>Multirubro en Junín, Mendoza. Envíos a toda la provincia.</p></div>
+  <div><a class="logo" href="#" data-ir="tienda"><img class="logo-img" src="img/logo.webp" alt="" width="44" height="44"><span>my<b>luz</b></span></a><p>Multirubro en Junín, Mendoza. Envíos a toda la provincia.</p></div>
   <div><h3>Comprar</h3><p>Envío por Correo Argentino<br>Retiro en el local<br>Transferencia o tarjeta</p></div>
   <div><h3>Mayoristas</h3><p>Registrate y, cuando aprobemos tu cuenta, vas a ver tus precios.</p><button class="btn-l" type="button" id="btn-may-pie">Soy mayorista</button></div>
   <div><h3>Legales</h3><p><a href="legales/terminos/">Términos y condiciones</a><br><a href="legales/privacidad/">Privacidad</a><br><a href="legales/cambios-y-devoluciones/">Cambios y devoluciones</a><br><a href="legales/mayoristas/">Condiciones para mayoristas</a></p></div>
@@ -110,6 +110,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="data.js"></script>
+<script src="precio.js"></script>
 <script src="peso.js"></script>
 <script src="envio.js"></script>
 <script src="app.js"></script>

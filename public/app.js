@@ -2,7 +2,7 @@
 // Prototipo de myluz: todo corre en el navegador con datos de ejemplo. No hay servidor ni datos reales.
 
 const CONFIG = {
-  descMayorista: 0.25,     // descuento base de mayoristas sobre el precio de lista
+  descMayorista: 0.25,     // descuento base de mayoristas sobre el precio de contado
   minimoMayorista: 80000,  // compra mínima de ejemplo
   alias: "alias.del.negocio",
 };
@@ -32,12 +32,20 @@ let ocultos = new Set(leer("ocultos", [])); // códigos que el negocio ocultó d
 const cliente = () => mayoristas.find((m) => m.id === sesion && m.estado === "aprobado") || null;
 const catDe = (id) => window.CATEGORIAS.find((c) => c.id === id) || { nombre: id, color: "#eee" };
 
-// Precios: el público ve el precio de lista. El mayorista ve el de lista tachado y su precio (descuento real).
+// Precios: p.precio es el precio de contado (transferencia o efectivo) que carga el negocio.
+// El público ve el precio de lista (tarjeta, cuotas sin interés) y el de contado con el descuento (public/precio.js).
+// El mayorista ve el de contado tachado y su precio (descuento real sobre el contado).
+const pctTransf = Math.round(window.Precio.DESCUENTO * 100);
 function precios(p) {
   const m = cliente();
-  if (m) return { tachado: p.precio, final: p.precio * (1 - m.desc / 100), etiqueta: `-${m.desc}% mayorista`, may: true };
-  return { tachado: null, final: p.precio, etiqueta: null, may: false };
+  if (m) return { tachado: p.precio, final: p.precio * (1 - m.desc / 100), tarjeta: p.precio * (1 - m.desc / 100), etiqueta: `-${m.desc}% mayorista`, may: true };
+  const lista = window.Precio.precioLista(p.precio);
+  return { tachado: null, final: p.precio, tarjeta: lista, cuota: window.Precio.valorCuota(lista), etiqueta: null, may: false };
 }
+// Bloque de precios del público: lista + cuotas + contado con descuento.
+const preciosPublico = (pr, grande) => `<div class="precio${grande ? " grande" : ""}">${pesos(pr.tarjeta)}</div>
+  <div class="cuotas">${window.Precio.CUOTAS} cuotas sin interés de ${pesos(pr.cuota)}</div>
+  <div class="contado"><b>${pesos(pr.final)}</b> ${grande ? "con transferencia o efectivo" : "en efectivo o transf."} <span class="off">${pctTransf}% off</span></div>`;
 
 function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 2200); }
 
@@ -59,7 +67,7 @@ function pintarIntro() {
        <ul class="beneficios">
          <li><b>Envíos a toda Mendoza</b><span>Por Correo Argentino</span></li>
          <li><b>Retiro en el local</b><span>Junín, Mendoza</span></li>
-         <li><b>Pagás como quieras</b><span>Transferencia o tarjeta</span></li>
+         <li><b>3 cuotas sin interés</b><span>o ${pctTransf}% off con transferencia o efectivo</span></li>
          <li><b>Precios mayoristas</b><span>Con cuenta aprobada</span></li>
        </ul></div>
        <h2 class="titulo">Comprá por categoría</h2>
@@ -84,8 +92,7 @@ function tarjeta(p) {
       <a class="foto" href="${url}" style="background:${c.color}" tabindex="-1" aria-hidden="true"><img src="img/p/${esc(p.codigo)}.webp" alt="" loading="lazy" width="600" height="450">
         ${pr.etiqueta ? `<em class="tag may">${pr.etiqueta}</em>` : ""}${sin ? `<em class="sin">Sin stock</em>` : ""}</a>
       <div class="info"><span class="cod">${esc(c.nombre)}${!sin && p.stock < 5 ? ` · <b class="pocas">Últimas ${p.stock}</b>` : ""}</span><h3 class="nom"><a href="${url}">${esc(p.nombre)}</a></h3>
-        <div class="precios">${pr.tachado ? `<div class="tachado">${pesos(pr.tachado)}</div>` : ""}<div class="precio">${pesos(pr.final)}</div>
-        ${pr.may ? `<div class="sub">Precio mayorista</div>` : ""}</div>
+        <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio">${pesos(pr.final)}</div><div class="sub">Precio mayorista</div>` : preciosPublico(pr)}</div>
         <button class="add" type="button" data-add="${esc(p.codigo)}" ${sin ? "disabled" : ""} aria-label="Agregar ${esc(p.nombre)}">${sin ? "Sin stock" : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar`}</button></div>
     </article>`;
 }
@@ -102,7 +109,7 @@ function pintarFicha(cod) {
       <div class="ficha-info">
         <span class="cod">${esc(c.nombre)} · Cód. ${esc(p.codigo)}</span>
         <h1>${esc(p.nombre)}</h1>
-        <div class="precios">${pr.tachado ? `<div class="tachado">${pesos(pr.tachado)}</div>` : ""}<div class="precio grande">${pesos(pr.final)}</div>${pr.may ? `<div class="sub">Tu precio mayorista</div>` : ""}</div>
+        <div class="precios">${pr.may ? `<div class="tachado">${pesos(pr.tachado)}</div><div class="precio grande">${pesos(pr.final)}</div><div class="sub">Tu precio mayorista</div>` : preciosPublico(pr, true)}</div>
         <p class="disp ${sin ? "no" : p.stock < 5 ? "pocas" : "si"}">${sin ? "Sin stock por ahora" : p.stock < 5 ? `Quedan ${p.stock} unidades` : "Disponible"}</p>
         ${sin ? "" : `<div class="comprar"><div class="qty grande" role="group" aria-label="Cantidad"><button type="button" data-cant="-1" aria-label="Restar uno">−</button><output id="cant">1</output><button type="button" data-cant="1" aria-label="Sumar uno">+</button></div>
           <button class="cta" type="button" data-add-ficha="${esc(p.codigo)}">Agregar al pedido</button></div>`}
@@ -110,7 +117,7 @@ function pintarFicha(cod) {
         <ul class="ficha-extra">
           <li><b>Envío a toda Mendoza</b><span>Por Correo Argentino, a domicilio o a sucursal. El costo se calcula con tu código postal al finalizar la compra.</span></li>
           <li><b>Retiro en el local</b><span>Junín, Mendoza. Te avisamos cuando esté listo.</span></li>
-          <li><b>Pagás como quieras</b><span>Transferencia o tarjeta de crédito y débito.</span></li>
+          <li><b>Pagás como quieras</b><span>Tarjeta en hasta ${window.Precio.CUOTAS} cuotas sin interés, o ${pctTransf}% off con transferencia o efectivo.</span></li>
         </ul>
       </div>
     </div>
@@ -127,7 +134,8 @@ function totales() {
   const items = Object.entries(carro).map(([cod, n]) => ({ p: productos.find((x) => x.codigo === cod), n })).filter((i) => i.p);
   const lista = items.reduce((s, i) => s + i.p.precio * i.n, 0);
   const final = items.reduce((s, i) => s + precios(i.p).final * i.n, 0);
-  return { items, lista, final, cant: items.reduce((s, i) => s + i.n, 0) };
+  const tarjeta = items.reduce((s, i) => s + precios(i.p).tarjeta * i.n, 0);
+  return { items, lista, final, tarjeta, cant: items.reduce((s, i) => s + i.n, 0) };
 }
 
 // Peso estimado por nombre y categoría (public/peso.js). Si un producto trae peso cargado, manda ese.
@@ -143,8 +151,11 @@ function pintarCarro() {
       <span class="sub">${pesos(precios(p).final)} c/u</span></div>`).join("") : `<p class="nota">Todavía no agregaste productos.</p>`;
   const falta = m && t.final < CONFIG.minimoMayorista;
   $("#carro-pie").innerHTML = t.items.length ? `
-    ${m ? `<div class="fila"><span>Precio de lista</span><span class="tachado">${pesos(t.lista)}</span></div>` : ""}
-    <div class="fila total"><span>${m ? "Total mayorista" : "Total"}</span><span>${pesos(t.final)}</span></div>
+    ${m ? `<div class="fila"><span>Precio de contado</span><span class="tachado">${pesos(t.lista)}</span></div>` : ""}
+    ${m ? `<div class="fila total"><span>Total mayorista</span><span>${pesos(t.final)}</span></div>`
+      : `<div class="fila total"><span>Total con tarjeta</span><span>${pesos(t.tarjeta)}</span></div>
+    <div class="fila"><span>${window.Precio.CUOTAS} cuotas sin interés de</span><span>${pesos(window.Precio.valorCuota(t.tarjeta))}</span></div>
+    <div class="fila contado"><span>Con transferencia o efectivo (${pctTransf}% off)</span><b>${pesos(t.final)}</b></div>`}
     ${falta ? `<div class="alerta">Te faltan ${pesos(CONFIG.minimoMayorista - t.final)} para la compra mínima mayorista.</div>` : ""}
     <button class="cta" type="button" id="ir-checkout" ${falta ? "disabled" : ""}>Finalizar compra</button>` : "";
   guardar("carro", carro);
@@ -207,10 +218,10 @@ function dlgCheckout() {
       </div>
     </div>
     <fieldset class="opciones" style="border:0;padding:0;margin:0"><legend class="campo">Pago</legend>
-      <label class="op"><input type="radio" name="pago" value="transf" checked><span><b>Transferencia</b><small>Te mostramos el alias al confirmar.</small></span></label>
-      <label class="op"><input type="radio" name="pago" value="tarjeta"><span><b>Tarjeta de crédito o débito</b><small>Pagás en Mercado Pago.</small></span></label>
+      <label class="op"><input type="radio" name="pago" value="transf" checked><span><b>Transferencia o efectivo${m ? "" : ` · ${pctTransf}% off`}</b><small>Te mostramos el alias al confirmar. En efectivo, si retirás en el local.</small></span></label>
+      <label class="op"><input type="radio" name="pago" value="tarjeta"><span><b>Tarjeta de crédito o débito</b><small>${m ? "Pagás en Mercado Pago." : `En Mercado Pago, hasta ${window.Precio.CUOTAS} cuotas sin interés.`}</small></span></label>
     </fieldset>
-    <div class="resumen"><div class="fila"><span>Productos</span><span>${pesos(t.final)}</span></div>
+    <div class="resumen"><div class="fila"><span>Productos</span><span id="r-prod">${pesos(t.final)}</span></div>
       <div class="fila"><span>Envío</span><span id="r-envio">—</span></div>
       <div class="fila total"><span>Total</span><span id="r-total">${pesos(t.final)}</span></div></div>
     <p class="legal-ok">Al confirmar aceptás los <a href="legales/terminos/" target="_blank">términos y condiciones</a> y la <a href="legales/privacidad/" target="_blank">política de privacidad</a>.</p>
@@ -218,6 +229,8 @@ function dlgCheckout() {
     <button class="cta">Confirmar pedido</button><button class="btn-g" type="button" data-cerrar-dlg>Volver</button></form>`;
   d.showModal();
   const f = $("form", d);
+  // Con tarjeta se cobra el precio de lista; con transferencia o efectivo, el de contado.
+  const subtotal = () => (new FormData(f).get("pago") === "tarjeta" ? t.tarjeta : t.final);
   const costoEnvio = () => {
     const fd = new FormData(f);
     if (fd.get("entrega") !== "correo") return 0;
@@ -237,9 +250,10 @@ function dlgCheckout() {
       } catch (err) { $("#envio-msg", d).textContent = err.message; }
     } else if (correo) $("#envio-msg", d).textContent = "Escribí tu código postal para calcular el envío.";
     $("#envio-ops", d).hidden = !cotizacion;
-    const envio = costoEnvio();
+    const envio = costoEnvio(), prod = subtotal();
+    $("#r-prod", d).textContent = pesos(prod);
     $("#r-envio", d).textContent = !correo ? "Sin costo (retiro)" : envio == null ? "—" : pesos(envio);
-    $("#r-total", d).textContent = pesos(t.final + (envio || 0));
+    $("#r-total", d).textContent = pesos(prod + (envio || 0));
   };
   f.addEventListener("input", actualizar);
   f.addEventListener("change", actualizar);
@@ -252,7 +266,7 @@ function dlgCheckout() {
     err.hidden = !falta; err.textContent = falta;
     if (falta) return;
     const num = "ML-" + String(Date.now()).slice(-5);
-    const total = t.final + envio;
+    const total = subtotal() + envio;
     const pedidos = leer("pedidos", []); pedidos.unshift({ num, nombre: datos.nombre, total, envio, pago: datos.pago, entrega: datos.entrega, may: !!m }); guardar("pedidos", pedidos.slice(0, 20));
     d.innerHTML = `<div class="ok-box"><div class="circ">✓</div><h2>¡Pedido ${num} recibido!</h2>
       <p>Total ${pesos(total)}${envio ? ` (incluye envío ${pesos(envio)})` : ""}.</p>
@@ -268,7 +282,7 @@ function pintarProductosPanel() {
   $("#tabla-prod").innerHTML = `<p class="nota">${productos.length - ocultos.size} visibles · ${ocultos.size} ocultos</p>` + l.map((p) => {
     const vis = !ocultos.has(p.codigo);
     return `<div class="reg prod${vis ? "" : " oculto"}"><b>${esc(p.nombre)}</b>
-      <div class="der"><span class="sub">${pesos(p.precio)} · stock ${p.stock}</span>
+      <div class="der"><span class="sub">Contado ${pesos(p.precio)} · lista ${pesos(window.Precio.precioLista(p.precio))} · stock ${p.stock}</span>
         <label class="switch"><input type="checkbox" data-vis="${esc(p.codigo)}" ${vis ? "checked" : ""}><span>${vis ? "Visible" : "Oculto"}</span></label></div>
       <span class="sub">${esc(p.codigo)} · ${esc(catDe(p.categoria).nombre)}</span></div>`;
   }).join("");
