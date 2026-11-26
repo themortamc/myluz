@@ -205,3 +205,4 @@ a.btn-g{text-decoration:none;color:var(--ink)}
 .hero .btn-p{background:#fff;color:var(--acc-ink)}
 .pie{background:var(--rojo-osc);color:#f6d6da}
 .stock-vis{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700}.stock-vis input{width:76px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-weight:600;background:var(--card)}.stock-vis input:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.antes{display:flex;align-items:center;gap:6px}.antes .tachado{font-size:13px}.off.rojo{background:var(--acc-soft);color:var(--acc)}.precio.grande~.contado,.antes+.precio.grande{margin-top:2px}

@@ -18,6 +18,13 @@
     return Math.ceil(lista / (cuotas || CUOTAS));
   }
 
-  var api = { precioLista: precioLista, valorCuota: valorCuota, DESCUENTO: DESCUENTO, CUOTAS: CUOTAS };
+  // shortcut: precio "antes" tachado SOLO para la demo (pedido del dueño). Mostrar un precio anterior que no existió
+  // puede ser publicidad engañosa (Ley 24.240 / Ley 22.802); antes de la tienda real hay que definir cómo hacerlo legal.
+  var TACHADO = 0.25; // el precio tachado es la lista + 25 %, redondeado hacia arriba a $100
+  function precioTachado(lista) {
+    return lista > 0 ? Math.ceil(lista * (1 + TACHADO) / 100) * 100 : 0;
+  }
+
+  var api = { precioLista: precioLista, valorCuota: valorCuota, precioTachado: precioTachado, DESCUENTO: DESCUENTO, CUOTAS: CUOTAS, TACHADO: TACHADO };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Precio = api;
 })(this);

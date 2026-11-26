@@ -47,9 +47,13 @@ function precios(p) {
   return { tachado: null, final: p.precio, tarjeta: lista, cuota: window.Precio.valorCuota(lista), etiqueta: null, may: false };
 }
 // Bloque de precios del público: lista + cuotas + contado con descuento.
-const preciosPublico = (pr, grande) => `<div class="precio${grande ? " grande" : ""}">${pesos(pr.tarjeta)}</div>
+const preciosPublico = (pr, grande) => {
+  const antes = window.Precio.precioTachado(pr.tarjeta), off = Math.round((1 - pr.tarjeta / antes) * 100);
+  return `<div class="antes"><span class="tachado">${pesos(antes)}</span> <span class="off rojo">${off}% off</span></div>
+  <div class="precio${grande ? " grande" : ""}">${pesos(pr.tarjeta)}</div>
   <div class="cuotas">${window.Precio.CUOTAS} cuotas sin interés de ${pesos(pr.cuota)}</div>
   <div class="contado"><b>${pesos(pr.final)}</b> ${grande ? "con transferencia o efectivo" : "en efectivo o transf."} <span class="off">${pctTransf}% off</span></div>`;
+};
 
 function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 2200); }
 

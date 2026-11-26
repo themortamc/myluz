@@ -23,3 +23,11 @@ test("15 % de descuento y casos borde", () => {
   assert.equal(P.precioLista(0), 0);
   assert.throws(() => P.precioLista(1000, 1));
 });
+
+test("precio tachado de la demo: siempre mayor que la lista, redondeado a $100", () => {
+  assert.equal(P.precioTachado(16560), 20700);
+  for (let c = 100; c <= 300000; c += 211) {
+    const l = P.precioLista(c), t = P.precioTachado(l);
+    assert.ok(t > l && t % 100 === 0, `lista ${l} tachado ${t}`);
+  }
+});
