@@ -1,8 +1,11 @@
-# myluz
-Tienda online para un comercio multirubro (cliente de mortups). Hoy es un **prototipo estático** en `public/` (HTML + CSS + JS, datos de ejemplo); la versión real se construye sobre la base de Todo y Más (Next.js + Supabase + Cloudflare).
-- Verificar: `npm run check` (sintaxis + pruebas de envío en `tests/`).
-- **Envío (crítico, no puede estar mal):** `public/envio.js` es copia fiel de `todoymas/lib/shipping.ts`. Si cambian las tarifas de Correo, actualizar los dos y correr las pruebas de ambos. El peso NO se carga: se estima por nombre/categoría en `public/peso.js` (redondeando hacia arriba); un producto puede traer `peso` y manda ese. Probar en el navegador con Playwright antes de decir "listo".
-- Deploy: `npm run deploy` (Cloudflare Workers, nombre `myluz`).
-- **Repo público:** nunca subir claves, `.env`, datos reales del cliente (productos exportados, chats, teléfonos, direcciones). Las exportaciones van en `datos/` (ignorado).
-- Contexto del cliente y decisiones: `~/brain/Proyectos/myluz.md`.
-- **Calidad (pedido del usuario):** la versión real se construye aplicando las skills de diseño (`impeccable`/`unslop`), `copywriting`, `seo`/`schema` y `cro`: textos reales del negocio, datos estructurados de productos, sitemap, metadatos, Core Web Vitals y accesibilidad. El prototipo es `noindex` a propósito.
+# myluz (tienda real)
+Tienda online real de **Myluz** (calzado y multirubro, Junín, Mendoza), cliente de mortups. Base copiada de `~/todoymas` (Next.js 14 + Supabase + Cloudflare Workers/OpenNext). El prototipo aprobado está en la rama `prototipo` (tag `prototipo-v1`) y hoy es lo publicado en myluz.com.ar (worker `myluz`).
+- Verificar: `npm run typecheck`, `npm run lint`, `npm test` (vitest), `npm run build`. Hook Stop corre typecheck+lint; pre-push en `.git/hooks` (nunca `--no-verify`).
+- **Repo PÚBLICO:** nada de datos del cliente (CUIT, alias, nombre, teléfonos, dirección) ni claves. Datos del negocio por variables de entorno / tabla `store_settings`.
+- Plan y decisiones: `~/.claude/plans/planifica-mejoras-y-prospeccio-kind-snowglobe-of-*.md` y `~/brain/Proyectos/myluz.md`.
+- Precios: `products.price` = contado; lista = contado ÷ 0,9 redondeado a $10 (3 cuotas sin interés con tarjeta); revendedores aprobados ven `price_revendedor`.
+- Envío: solo Mendoza por Correo Argentino, gratis desde $100.000; retiro en el local.
+- Preguntar antes de tocar la DB de producción, pagos o el dominio myluz.com.ar (hoy muestra el prototipo).
+- **ESTÉTICA (pedido del usuario): la tienda real se tiene que ver igual que el prototipo** (rojo #a8252f, palabra Myluz recortada del logo, tarjetas, bloque de precios tachado/lista/cuotas/contado, panel). Copiar diseño y textos de la rama `prototipo` (`public/index.html`, `styles.css`, `app.js`), NO el diseño de Todo y Más.
+- Worker de la tienda nueva: `myluz-tienda` (workers.dev). NO publicar sobre el worker `myluz` ni cambiar el dominio sin avisar.
+- **Supabase está conectado a este repo por GitHub:** lo que haya en `supabase/migrations` se aplica solo al subir a main. Subir solo migraciones revisadas y probadas (dry-run antes).

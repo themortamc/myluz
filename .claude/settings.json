@@ -1,5 +1,1 @@
-{
-  "hooks": {
-    "Stop": [{ "hooks": [{ "type": "command", "command": "cd \"$CLAUDE_PROJECT_DIR\" && npm run --silent check" }] }]
-  }
-}
+{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"~/.claude/hooks/verify-stop.sh 'npm run typecheck && npm run lint'","timeout":200,"statusMessage":"Verificando"}]}]}}
