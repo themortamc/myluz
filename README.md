@@ -33,7 +33,7 @@ Hecha por [mortups](https://mortups.com.ar) sobre Next.js 14, Supabase y Cloudfl
 </tr>
 </table>
 
-<sub>Capturas del diseño aprobado (rama <code>prototipo</code>, publicado en myluz.com.ar). La tienda real mantiene esta misma estética.</sub>
+<sub>Capturas del diseño aprobado (carpeta <code>prototipo/</code>, publicado en myluz.com.ar). La tienda real mantiene esta misma estética.</sub>
 
 ## Desarrollo
 ```bash

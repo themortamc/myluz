@@ -1,0 +1,10 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env*
+*.log
+.DS_Store
+# Nunca subir datos reales del cliente ni exportaciones del programa
+datos/
+*.csv
+!docs/ejemplo-productos.csv
