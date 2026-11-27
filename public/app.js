@@ -2,6 +2,7 @@
 // Prototipo de myluz: todo corre en el navegador con datos de ejemplo. No hay servidor ni datos reales.
 
 const CONFIG = {
+  envioGratisDesde: 100000, // pedido del dueño (27/11): envío gratis desde $100.000
   alias: "alias.del.negocio",
 };
 
@@ -31,7 +32,8 @@ let stockVis = leer("stockVisible", {});
 // Precio fijo de revendedor por producto: viene en los datos y el negocio lo puede cambiar desde el panel.
 let preciosRev = leer("preciosRev", {});
 const precioRevDe = (p) => preciosRev[p.codigo] ?? p.precioRev ?? p.precio; // sin precio de revendedor cargado, ve el de contado
-const stockDe = (p) => (stockVis[p.codigo] == null ? p.stock : Math.min(stockVis[p.codigo], p.stock));
+// Sin stock visible cargado se muestra "Disponible" sin número (pedido del dueño); con número, nunca más que el real.
+const stockDe = (p) => (stockVis[p.codigo] == null ? (p.stock > 0 ? Infinity : 0) : Math.min(stockVis[p.codigo], p.stock));
 const visible = (p) => stockVis[p.codigo] !== 0;
 
 const cliente = () => mayoristas.find((m) => m.id === sesion && m.estado === "aprobado") || null;
@@ -74,7 +76,7 @@ function pintarIntro() {
        <p>Bazar, perfumería, zapatería, librería, juguetería y mucho más. Pedí online y recibilo en toda Mendoza o retiralo en el local.</p>
        <div class="hero-cta"><a class="btn-p" href="#grilla">Ver productos</a><button class="btn-l" type="button" id="btn-may-hero">Soy revendedor</button></div></div>
        <ul class="beneficios">
-         <li><b>Envíos a toda Mendoza</b><span>Por Correo Argentino</span></li>
+         <li><b>Envío gratis desde ${pesos(CONFIG.envioGratisDesde)}</b><span>A toda Mendoza por Correo Argentino</span></li>
          <li><b>Retiro en el local</b><span>Junín, Mendoza</span></li>
          <li><b>3 cuotas sin interés</b><span>o ${pctTransf}% off con transferencia o efectivo</span></li>
          <li><b>Precios para revendedores</b><span>Con cuenta aprobada</span></li>
@@ -124,7 +126,7 @@ function pintarFicha(cod) {
           <button class="cta" type="button" data-add-ficha="${esc(p.codigo)}">Agregar al pedido</button></div>`}
         <div class="desc"><h2>Descripción</h2><p>${esc(p.descripcion || "Sin descripción por ahora.")}</p></div>
         <ul class="ficha-extra">
-          <li><b>Envío a toda Mendoza</b><span>Por Correo Argentino, a domicilio o a sucursal. El costo se calcula con tu código postal al finalizar la compra.</span></li>
+          <li><b>Envío a toda Mendoza</b><span>Gratis en compras desde ${pesos(CONFIG.envioGratisDesde)}. Por Correo Argentino, a domicilio o a sucursal. El costo se calcula con tu código postal al finalizar la compra.</span></li>
           <li><b>Retiro en el local</b><span>Junín, Mendoza. Te avisamos cuando esté listo.</span></li>
           <li><b>Pagás como quieras</b><span>Tarjeta en hasta ${window.Precio.CUOTAS} cuotas sin interés, o ${pctTransf}% off con transferencia o efectivo.</span></li>
         </ul>
@@ -241,7 +243,8 @@ function dlgCheckout() {
   const costoEnvio = () => {
     const fd = new FormData(f);
     if (fd.get("entrega") !== "correo") return 0;
-    return cotizacion ? cotizacion[fd.get("servicio")] : null;
+    if (!cotizacion) return null;
+    return subtotal() >= CONFIG.envioGratisDesde ? 0 : cotizacion[fd.get("servicio")];
   };
   const actualizar = () => {
     const fd = new FormData(f), correo = fd.get("entrega") === "correo";
@@ -259,7 +262,7 @@ function dlgCheckout() {
     $("#envio-ops", d).hidden = !cotizacion;
     const envio = costoEnvio(), prod = subtotal();
     $("#r-prod", d).textContent = pesos(prod);
-    $("#r-envio", d).textContent = !correo ? "Sin costo (retiro)" : envio == null ? "—" : pesos(envio);
+    $("#r-envio", d).textContent = !correo ? "Sin costo (retiro)" : envio == null ? "—" : envio === 0 ? `Gratis (compra desde ${pesos(CONFIG.envioGratisDesde)})` : pesos(envio);
     $("#r-total", d).textContent = pesos(prod + (envio || 0));
   };
   f.addEventListener("input", actualizar);
@@ -287,12 +290,12 @@ function pintarProductosPanel() {
   const q = ($("#q-panel")?.value || "").trim().toLowerCase();
   const l = productos.filter((p) => !q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q));
   const ocultosN = productos.filter((p) => !visible(p)).length;
-  $("#tabla-prod").innerHTML = `<p class="nota">${productos.length - ocultosN} visibles · ${ocultosN} ocultos. <b>Stock visible</b>: lo que ve el cliente. Vacío = el stock real; 0 = el producto no aparece en la tienda.</p>` + l.map((p) => {
+  $("#tabla-prod").innerHTML = `<p class="nota">${productos.length - ocultosN} visibles · ${ocultosN} ocultos. <b>Stock visible</b>: lo que ve el cliente. Vacío = "Disponible" sin número; 0 = el producto no aparece en la tienda.</p>` + l.map((p) => {
     const vis = visible(p), v = stockVis[p.codigo];
     return `<div class="reg prod${vis ? "" : " oculto"}"><b>${esc(p.nombre)}</b>
       <div class="der"><span class="sub">Contado ${pesos(p.precio)} · lista ${pesos(window.Precio.precioLista(p.precio))} · stock real ${p.stock}</span>
         <label class="stock-vis">Revendedor $<input type="number" min="1" step="1" inputmode="numeric" data-prec-rev="${esc(p.codigo)}" value="${precioRevDe(p)}" aria-label="Precio de revendedor de ${esc(p.nombre)}"></label>
-        <label class="stock-vis">Stock visible<input type="number" min="0" step="1" inputmode="numeric" data-stock-vis="${esc(p.codigo)}" value="${v == null ? "" : v}" placeholder="${p.stock}"></label></div>
+        <label class="stock-vis">Stock visible<input type="number" min="0" step="1" inputmode="numeric" data-stock-vis="${esc(p.codigo)}" value="${v == null ? "" : v}" placeholder="Disponible"></label></div>
       <span class="sub">${esc(p.codigo)} · ${esc(catDe(p.categoria).nombre)}</span></div>`;
   }).join("");
 }
@@ -339,7 +342,7 @@ function refrescar() { pintarCats(); pintarIntro(); pintarGrilla(); pintarCarro(
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button, a"); if (!b) return;
   if (b.dataset.cat) { filtro.cat = b.dataset.cat; pintarCats(); pintarGrilla(); if (b.classList.contains("tile")) $("#barra").scrollIntoView({ behavior: "smooth" }); }
-  else if (b.dataset.cant) { const o = $("#cant"); const p = productos.find((x) => x.codigo === decodeURIComponent(location.hash.slice(3))); o.textContent = Math.max(1, Math.min(p ? stockDe(p) : 99, Number(o.textContent) + Number(b.dataset.cant))); }
+  else if (b.dataset.cant) { const o = $("#cant"); const p = productos.find((x) => x.codigo === decodeURIComponent(location.hash.slice(3))); o.textContent = Math.max(1, Math.min(p ? stockDe(p) : 99, 99, Number(o.textContent) + Number(b.dataset.cant))); }
   else if (b.dataset.addFicha) { const c = b.dataset.addFicha, n = Number($("#cant").textContent); const p = productos.find((x) => x.codigo === c), tope = stockDe(p), antes = carro[c] || 0; carro[c] = Math.min(tope, antes + n); pintarCarro(); toast(carro[c] - antes < n ? `Solo hay ${tope} disponibles` : `Agregaste ${n} al pedido`); }
   else if (b.dataset.catFicha) { e.preventDefault(); filtro.cat = b.dataset.catFicha; location.hash = ""; segunHash(); refrescar(); setTimeout(() => $("#barra").scrollIntoView(), 0); }
   else if (b.dataset.add) { const c = b.dataset.add, tope = stockDe(productos.find((x) => x.codigo === c)); if ((carro[c] || 0) >= tope) return toast(`Solo hay ${tope} disponibles`); carro[c] = (carro[c] || 0) + 1; pintarCarro(); toast("Agregado al pedido"); }
