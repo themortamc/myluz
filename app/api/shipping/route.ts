@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
-import { CheckoutError, getPublicSupabase, loadCart, quoteShippingFor } from '@/lib/server/checkout';
+import { CheckoutError, getPublicSupabase, loadCart, loadRules, quoteShippingFor } from '@/lib/server/checkout';
 
-// Cotización de envío para mostrar en el checkout. El peso sale de los
-// productos de la base (no de lo que mande el navegador). El cobro real se
-// vuelve a calcular en /api/checkout, así que esto es solo informativo.
+// Cotización de envío para mostrar en el checkout (solo Mendoza). El peso
+// sale de los productos de la base (no de lo que mande el navegador). El
+// cobro real —y si corresponde el envío gratis según el subtotal— se vuelve
+// a calcular en /api/checkout, así que esto es solo informativo.
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const db = await getPublicSupabase();
-    const cart = await loadCart(db, body?.items);
-    const quote = quoteShippingFor(cart.shippingItems, body?.postalCode, body?.province);
+    const rules = await loadRules(db);
+    const cart = await loadCart(db, body?.items, { pago: 'contado', rules, checkStock: false });
+    const quote = quoteShippingFor(cart.shippingItems, body?.postalCode);
 
     return NextResponse.json({
       success: true,
@@ -17,6 +19,7 @@ export async function POST(request: Request) {
       weightKg: quote.weightKg,
       domicilio: quote.domicilio,
       sucursal: quote.sucursal,
+      envioGratisDesde: rules.envioGratisDesde,
       estimatedDays: '2 a 5 días hábiles',
       service: 'Correo Argentino - Clásico',
     });

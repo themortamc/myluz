@@ -232,3 +232,15 @@ export function calculateShipping(input: { postalCode: unknown; province: unknow
     sucursal: correoPrice(weightKg, zone, 'sucursal'),
   };
 }
+
+// Myluz envía solo dentro de Mendoza (CP 5500–5699, letra M en el CPA).
+// Igual que cotizarMendoza() del prototipo.
+export const SOLO_MENDOZA_MSG =
+  'Por ahora enviamos solo dentro de Mendoza. Si tu código postal es de Mendoza, escribinos por WhatsApp.';
+
+export function quoteMendoza(postalCode: unknown, items: ShippingItem[]): ShippingQuote {
+  const cp = parsePostalCode(postalCode);
+  if (!cp) throw new ShippingError('Código postal inválido. Escribí los 4 números (ej: 5577).');
+  if ((cp.letter && cp.letter !== 'M') || cp.digits < 5500 || cp.digits > 5699) throw new ShippingError(SOLO_MENDOZA_MSG);
+  return calculateShipping({ postalCode, province: 'Mendoza', items });
+}

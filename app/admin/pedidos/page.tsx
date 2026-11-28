@@ -60,7 +60,6 @@ const PAYMENT_LABEL: Record<string, string> = {
   mercadopago: 'Mercado Pago', // pedidos viejos, de antes de separar tarjeta/dinero
   mercadopago_tarjeta: 'Tarjetas (Mercado Pago)',
   mercadopago_dinero: 'Mercado Pago (dinero en cuenta)',
-  gocuotas: 'GoCuotas',
   otro: 'Otro',
 };
 
@@ -100,7 +99,7 @@ export default function PedidosPage() {
 
   const filtered = orders
     .filter((o) => filter === 'todos' || o.status === filter)
-    .filter((o) => channelFilter === 'todos' || o.channel === channelFilter);
+    .filter((o) => channelFilter === 'todos' || (channelFilter === 'revendedor') === (o.price_tier === 'revendedor'));
 
   async function updateStatus(orderId: string, status: string) {
     setUpdating(true);
@@ -141,9 +140,9 @@ export default function PedidosPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos los canales</SelectItem>
-            <SelectItem value="online">Online</SelectItem>
-            <SelectItem value="mostrador">Mostrador</SelectItem>
+            <SelectItem value="todos">Todos los pedidos</SelectItem>
+            <SelectItem value="cliente">Clientes</SelectItem>
+            <SelectItem value="revendedor">Revendedores</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -184,13 +183,13 @@ export default function PedidosPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{formatDate(o.created_at)}</TableCell>
                 <TableCell className="text-sm">
-                  <Badge variant={o.channel === 'mostrador' ? 'secondary' : 'outline'} className="inline-flex items-center gap-1 font-normal">
-                    {o.channel === 'mostrador' ? (
+                  <Badge variant={o.price_tier === 'revendedor' ? 'secondary' : 'outline'} className="inline-flex items-center gap-1 font-normal">
+                    {o.price_tier === 'revendedor' ? (
                       <ShoppingBag className="h-3 w-3" />
                     ) : (
                       <Globe className="h-3 w-3" />
                     )}
-                    {o.channel === 'mostrador' ? 'Mostrador' : 'Online'}
+                    {o.price_tier === 'revendedor' ? 'Revendedor' : 'Cliente'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-sm">
@@ -227,13 +226,13 @@ export default function PedidosPage() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 flex-wrap">
                   Pedido de {selected.customer_name}
-                  <Badge variant={selected.channel === 'mostrador' ? 'secondary' : 'outline'} className="inline-flex items-center gap-1 font-normal">
-                    {selected.channel === 'mostrador' ? (
+                  <Badge variant={selected.price_tier === 'revendedor' ? 'secondary' : 'outline'} className="inline-flex items-center gap-1 font-normal">
+                    {selected.price_tier === 'revendedor' ? (
                       <ShoppingBag className="h-3 w-3" />
                     ) : (
                       <Globe className="h-3 w-3" />
                     )}
-                    {selected.channel === 'mostrador' ? 'Mostrador' : 'Online'}
+                    {selected.price_tier === 'revendedor' ? 'Revendedor' : 'Cliente'}
                   </Badge>
                 </DialogTitle>
               </DialogHeader>
@@ -274,7 +273,7 @@ export default function PedidosPage() {
                       <p>{PAYMENT_LABEL[selected.payment_method] ?? selected.payment_method}</p>
                     </div>
                   )}
-                  {selected.channel === 'online' && (
+                  {selected.payment_method === 'mercadopago_tarjeta' && (
                     <div>
                       <p className="text-muted-foreground">Estado del pago</p>
                       <Badge variant={PAYMENT_STATUS_VARIANT[selected.payment_status] ?? 'outline'} className="mt-0.5">
@@ -314,11 +313,11 @@ export default function PedidosPage() {
                       </div>
                     ))}
                   </div>
-                  {selected.surcharge_amount > 0 && (
-                    <div className="flex items-center justify-between text-sm text-muted-foreground mt-2 pt-2 border-t">
-                      <span>Recargo ({PAYMENT_LABEL[selected.payment_method ?? ''] ?? selected.payment_method})</span>
-                      <span>{formatPrice(selected.surcharge_amount)}</span>
-                    </div>
+                  {selected.price_tier === 'revendedor' && (
+                    <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">Pedido de revendedor (precios de revendedor).</p>
+                  )}
+                  {selected.installments > 1 && (
+                    <p className="text-xs text-muted-foreground mt-1">Tarjeta en {selected.installments} cuotas sin interés.</p>
                   )}
                   <div className="flex items-center justify-between mt-1 pt-2 border-t font-bold">
                     <span>Total</span>

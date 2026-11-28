@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/auth-context';
 import { supabase } from '@/lib/supabase';
-import { SURCHARGE_METHODS, type SurchargeScope } from '@/lib/surcharges';
+import { formatPrice } from '@/lib/format';
+import { precioLista, rulesFromSettings, valorCuota } from '@/lib/pricing';
 
 const MP_ERROR_MESSAGES: Record<string, string> = {
   cancelado: 'Cancelaste la conexión con Mercado Pago.',
@@ -20,111 +21,81 @@ const MP_ERROR_MESSAGES: Record<string, string> = {
   inesperado: 'Ocurrió un error inesperado al conectar. Probá de nuevo.',
 };
 
-const SURCHARGE_COPY = {
-  online: {
-    title: 'Recargos online',
-    description:
-      'Se suman al total cuando el cliente paga desde la tienda online, según el método que elija en el checkout. Poné 0 para no cobrar recargo. La transferencia bancaria no lleva recargo.',
-  },
-  mostrador: {
-    title: 'Recargos en mostrador',
-    description:
-      'Se suman automáticamente al total cuando registrás una venta en mostrador, según la forma de pago que elijas. Poné 0 para no cobrar recargo.',
-  },
-} as const;
-
-// Acepta "18", "17.5" y "17,5". Devuelve null si no es un porcentaje válido.
-function parsePercent(text: string): number | null {
+// Acepta "10", "7.5" y "7,5". Devuelve null si no es un número válido en [min, max].
+function parseNumber(text: string, min: number, max: number): number | null {
   const clean = text.trim().replace(',', '.');
   if (clean === '') return null;
   const num = Number(clean);
-  if (Number.isNaN(num) || num < 0 || num > 100) return null;
+  if (!Number.isFinite(num) || num < min || num > max) return null;
   return num;
 }
 
-function SurchargesCard({ scope }: { scope: SurchargeScope }) {
+// Reglas de precio y envío (tabla store_settings). Las usan la tienda para
+// mostrar y el servidor para cobrar, así lo que se ve es lo que se cobra.
+function StoreRulesCard() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
-  const methods = SURCHARGE_METHODS[scope];
-  // Se guarda como texto para poder escribir decimales sin que el campo "salte".
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [descuento, setDescuento] = useState('');
+  const [cuotas, setCuotas] = useState('');
+  const [envioGratis, setEnvioGratis] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    (async () => {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('descuento_contado, cuotas_sin_interes, envio_gratis_desde')
+        .maybeSingle();
+      if (error) setErrorMsg('No pudimos leer la configuración.');
+      const rules = rulesFromSettings(data);
+      setDescuento(String(Math.round(rules.descuentoContado * 1000) / 10));
+      setCuotas(String(rules.cuotasSinInteres));
+      setEnvioGratis(rules.envioGratisDesde == null ? '' : String(rules.envioGratisDesde));
+      setLoading(false);
+    })();
   }, []);
 
-  async function load() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('payment_surcharges')
-      .select('payment_method, surcharge_percent');
-    if (error) {
-      setErrorMsg(
-        `No pudimos cargar los recargos: ${error.message}. Revisá que hayas corrido las migraciones de recargos en Supabase.`
-      );
-    } else {
-      const byKey: Record<string, number> = {};
-      (data as { payment_method: string; surcharge_percent: number }[]).forEach((r) => {
-        byKey[r.payment_method] = Number(r.surcharge_percent);
-      });
-      const next: Record<string, string> = {};
-      methods.forEach((m) => {
-        next[m.key] = String(byKey[m.key] ?? 0);
-      });
-      setValues(next);
-    }
-    setLoading(false);
-  }
-
-  async function handleSave() {
+  const handleSave = async () => {
     setNotice(null);
     setErrorMsg(null);
-
-    const rows: { payment_method: string; surcharge_percent: number; updated_at: string }[] = [];
-    for (const m of methods) {
-      const pct = parsePercent(values[m.key] ?? '');
-      if (pct === null) {
-        setErrorMsg(`"${m.label}": poné un número entre 0 y 100.`);
-        return;
-      }
-      rows.push({ payment_method: m.key, surcharge_percent: pct, updated_at: new Date().toISOString() });
-    }
-
+    const d = parseNumber(descuento, 0, 50);
+    const c = parseNumber(cuotas, 1, 24);
+    // El monto se escribe como "100000" o "100.000": se toman solo los dígitos.
+    const g = envioGratis.trim() === '' ? null : parseNumber(envioGratis.replace(/\D/g, ''), 0, 100000000);
+    if (d === null) return setErrorMsg('El descuento tiene que ser un número entre 0 y 50.');
+    if (c === null || !Number.isInteger(c)) return setErrorMsg('Las cuotas tienen que ser un número entero entre 1 y 24.');
+    if (envioGratis.trim() !== '' && g === null) return setErrorMsg('El monto de envío gratis no es válido.');
     setSaving(true);
-    // upsert: si la fila no existía todavía la crea, en vez de no hacer nada.
-    // .select() devuelve las filas realmente guardadas, así detectamos si la
-    // base rechazó el cambio en silencio (por ejemplo, un usuario sin permiso).
-    const { data, error } = await supabase
-      .from('payment_surcharges')
-      .upsert(rows, { onConflict: 'payment_method' })
-      .select('payment_method');
+    const { error } = await supabase
+      .from('store_settings')
+      .update({ descuento_contado: d / 100, cuotas_sin_interes: c, envio_gratis_desde: g })
+      .eq('id', true);
     setSaving(false);
+    if (error) return setErrorMsg('No se pudo guardar. Probá de nuevo.');
+    setNotice('Guardado. La tienda ya usa los valores nuevos.');
+  };
 
-    if (error) {
-      setErrorMsg(`No pudimos guardar los recargos: ${error.message}`);
-      return;
-    }
-    if (!data || data.length !== rows.length) {
-      setErrorMsg('La base no aceptó el cambio. Solo un administrador puede modificar los recargos.');
-      return;
-    }
-    setValues(Object.fromEntries(rows.map((r) => [r.payment_method, String(r.surcharge_percent)])));
-    setNotice('Recargos guardados. Ya se aplican a las próximas ventas.');
-  }
+  const ejemplo = (() => {
+    const d = parseNumber(descuento, 0, 50);
+    const c = parseNumber(cuotas, 1, 24);
+    if (d === null || c === null) return null;
+    const lista = precioLista(10000, d / 100);
+    return `Ejemplo: un producto de ${formatPrice(10000)} de contado se muestra a ${formatPrice(lista)} con tarjeta (${c} cuotas de ${formatPrice(valorCuota(lista, c))}).`;
+  })();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Percent className="h-5 w-5" />
-          {SURCHARGE_COPY[scope].title}
+          Precios y envío
         </CardTitle>
-        <CardDescription>{SURCHARGE_COPY[scope].description}</CardDescription>
+        <CardDescription>
+          En cada producto cargás el precio de contado (transferencia o efectivo). Con tarjeta se cobra el precio de lista, en cuotas sin interés.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {notice && (
@@ -144,39 +115,42 @@ function SurchargesCard({ scope }: { scope: SurchargeScope }) {
         ) : (
           <>
             <div className="space-y-3">
-              {methods.map((m) => (
-                <div key={m.key} className="flex items-center justify-between gap-4">
-                  <Label htmlFor={`recargo-${m.key}`} className="flex-1 font-normal">
-                    {m.label}
-                  </Label>
-                  <div className="relative w-28 shrink-0">
-                    <Input
-                      id={`recargo-${m.key}`}
-                      type="text"
-                      inputMode="decimal"
-                      disabled={!isAdmin}
-                      value={values[m.key] ?? ''}
-                      onChange={(e) => setValues((prev) => ({ ...prev, [m.key]: e.target.value }))}
-                      className="pr-7"
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                      %
-                    </span>
-                  </div>
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="regla-descuento" className="flex-1 font-normal">
+                  Descuento pagando por transferencia o efectivo
+                </Label>
+                <div className="relative w-28 shrink-0">
+                  <Input id="regla-descuento" inputMode="decimal" disabled={!isAdmin} value={descuento} onChange={(e) => setDescuento(e.target.value)} className="pr-7" />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="regla-cuotas" className="flex-1 font-normal">
+                  Cuotas sin interés con tarjeta
+                </Label>
+                <Input id="regla-cuotas" inputMode="numeric" disabled={!isAdmin} value={cuotas} onChange={(e) => setCuotas(e.target.value)} className="w-28 shrink-0" />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="regla-envio" className="flex-1 font-normal">
+                  Envío gratis desde (vacío = nunca)
+                </Label>
+                <div className="relative w-28 shrink-0">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                  <Input id="regla-envio" inputMode="numeric" disabled={!isAdmin} value={envioGratis} onChange={(e) => setEnvioGratis(e.target.value)} className="pl-6" />
+                </div>
+              </div>
             </div>
+            {ejemplo && <p className="text-xs text-muted-foreground">{ejemplo}</p>}
+            <p className="text-xs text-muted-foreground">
+              Las cuotas sin interés también hay que activarlas en tu cuenta de Mercado Pago (Tu negocio → Costos → Cuotas sin interés).
+            </p>
             {isAdmin ? (
               <Button onClick={handleSave} disabled={saving}>
-                {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Guardar recargos
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar
               </Button>
             ) : (
-              <p className="text-xs text-muted-foreground">Solo un administrador puede cambiar los recargos.</p>
+              <p className="text-xs text-muted-foreground">Solo el dueño puede cambiar estos valores.</p>
             )}
           </>
         )}
@@ -355,8 +329,7 @@ function PagosContent() {
         </CardContent>
       </Card>
 
-      <SurchargesCard scope="online" />
-      <SurchargesCard scope="mostrador" />
+      <StoreRulesCard />
     </div>
   );
 }

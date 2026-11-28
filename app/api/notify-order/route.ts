@@ -3,7 +3,7 @@ import { getServiceSupabase } from '@/lib/server/mercadopago-connection';
 import { notifyOrderOnce } from '@/lib/server/notify';
 
 // Lo llama el checkout justo después de crear un pedido con pago offline
-// (transferencia / efectivo). Los pagos online (Mercado Pago / GoCuotas)
+// (transferencia / efectivo). Los pagos online (Mercado Pago)
 // avisan desde sus webhooks cuando el pago se aprueba.
 export async function POST(request: Request) {
   try {
@@ -16,14 +16,13 @@ export async function POST(request: Request) {
     const supabaseAdmin = await getServiceSupabase();
     const { data: order } = await supabaseAdmin
       .from('orders')
-      .select('payment_method, channel, created_at')
+      .select('payment_method, created_at')
       .eq('id', orderId)
       .maybeSingle();
 
     const recent = order ? Date.now() - new Date(order.created_at).getTime() < 15 * 60 * 1000 : false;
     if (
       !order ||
-      order.channel !== 'online' ||
       !['transferencia', 'efectivo'].includes(order.payment_method) ||
       !recent
     ) {

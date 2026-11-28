@@ -5,7 +5,6 @@ const PAYMENT_LABELS: Record<string, string> = {
   mercadopago: 'Mercado Pago',
   mercadopago_tarjeta: 'Tarjetas (Mercado Pago)',
   mercadopago_dinero: 'Mercado Pago (dinero en cuenta)',
-  gocuotas: 'GoCuotas',
   transferencia: 'Transferencia',
   efectivo: 'Efectivo',
 };
@@ -41,7 +40,6 @@ export async function notifyOrderOnce(supabaseAdmin: any, orderId: string) {
       .from('orders')
       .update({ notified_at: new Date().toISOString() })
       .eq('id', orderId)
-      .eq('channel', 'online')
       .is('notified_at', null)
       .select('id, customer_name, total, payment_method, shipping_method, city, items')
       .maybeSingle();

@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { getServerEnv } from '@/lib/server/env';
 
 export async function getServiceSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = await getServerEnv('NEXT_PUBLIC_SUPABASE_URL');
+  const serviceRoleKey = await getServerEnv('SUPABASE_SERVICE_ROLE_KEY');
 
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error('Missing Supabase environment variables');
@@ -18,8 +19,8 @@ export async function getServiceSupabase() {
 }
 
 export async function requireAdmin(request?: Request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = (await getServerEnv('NEXT_PUBLIC_SUPABASE_URL'))!;
+  const supabaseAnonKey = (await getServerEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'))!;
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
@@ -53,15 +54,60 @@ export async function requireAdmin(request?: Request) {
   return user;
 }
 
+// El access token de Mercado Pago dura ~180 días. Si faltan menos de
+// REFRESH_BEFORE_DAYS para que venza, se renueva con el refresh_token (sin
+// que el dueño tenga que volver a conectar). Si la renovación falla y el
+// token todavía no venció, se sigue usando el actual.
+const REFRESH_BEFORE_DAYS = 15;
+
+export function needsRefresh(expiresAt: string | null | undefined, now = Date.now()): boolean {
+  if (!expiresAt) return false;
+  const t = Date.parse(expiresAt);
+  return Number.isFinite(t) && t - now < REFRESH_BEFORE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+async function refreshMercadoPagoToken(refreshToken: string) {
+  const clientId = await getServerEnv('MERCADOPAGO_CLIENT_ID');
+  const clientSecret = await getServerEnv('MERCADOPAGO_CLIENT_SECRET');
+  if (!clientId || !clientSecret) return null;
+  const res = await fetch('https://api.mercadopago.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, grant_type: 'refresh_token', refresh_token: refreshToken }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.access_token) {
+    console.error('No se pudo renovar el token de Mercado Pago:', res.status, data?.message ?? data?.error ?? '');
+    return null;
+  }
+  return data;
+}
+
 export async function getValidMercadoPagoAccessToken() {
   const supabase = await getServiceSupabase();
   const { data, error } = await supabase
     .from('mercadopago_connection')
-    .select('*')
-    .single();
+    .select('access_token, refresh_token, token_expires_at')
+    .maybeSingle();
 
-  if (error || !data) return null;
-  return data.access_token;
+  if (error || !data?.access_token) return null;
+  if (!needsRefresh(data.token_expires_at) || !data.refresh_token) return data.access_token;
+
+  const fresh = await refreshMercadoPagoToken(data.refresh_token);
+  if (fresh) {
+    await supabase
+      .from('mercadopago_connection')
+      .update({
+        access_token: fresh.access_token,
+        refresh_token: fresh.refresh_token ?? data.refresh_token,
+        token_expires_at: new Date(Date.now() + Number(fresh.expires_in ?? 15552000) * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', true);
+    return fresh.access_token as string;
+  }
+  const expired = data.token_expires_at ? Date.parse(data.token_expires_at) <= Date.now() : false;
+  return expired ? null : data.access_token;
 }
 
 export async function getMercadoPagoConnectionStatus() {

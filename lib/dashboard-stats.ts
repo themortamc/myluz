@@ -3,7 +3,7 @@ import type { Order, OrderItem } from './supabase';
 // Columnas de `orders` que necesita el dashboard (se piden solo estas para
 // no traer de más).
 export const DASHBOARD_ORDER_COLUMNS =
-  'id, customer_name, total, status, created_at, channel, payment_method, payment_status, shipping_method, shipping_cost, surcharge_amount, items';
+  'id, customer_name, total, status, created_at, price_tier, payment_method, payment_status, shipping_method, shipping_cost, items';
 
 export type DashboardOrder = Pick<
   Order,
@@ -12,11 +12,10 @@ export type DashboardOrder = Pick<
   | 'total'
   | 'status'
   | 'created_at'
-  | 'channel'
+  | 'price_tier'
   | 'payment_method'
   | 'payment_status'
   | 'shipping_method'
-  | 'surcharge_amount'
   | 'items'
 > & { shipping_cost?: number | null };
 
@@ -47,8 +46,8 @@ export type DashboardStats = {
   bestWeekday: WeekdayPoint | null;
   topProducts: TopProduct[];
   payments: BreakdownRow[];
-  surchargeMonth: number;
-  channels: { online: Period; mostrador: Period };
+  /** Ventas a clientes finales vs. a revendedores. */
+  channels: { cliente: Period; revendedor: Period };
   delivery: { retiro: Period; envio: Period };
   bestDay: { date: Date; total: number; count: number } | null;
   biggestOrder: Sale | null;
@@ -215,8 +214,7 @@ export function buildDashboardStats(orders: DashboardOrder[], now: Date = new Da
     .slice(0, 5);
 
   const pay = new Map<string, BreakdownRow>();
-  let surchargeMonth = 0;
-  const channels = { online: { total: 0, count: 0 }, mostrador: { total: 0, count: 0 } };
+  const channels = { cliente: { total: 0, count: 0 }, revendedor: { total: 0, count: 0 } };
   const delivery = { retiro: { total: 0, count: 0 }, envio: { total: 0, count: 0 } };
   const byDay = new Map<string, { date: Date; total: number; count: number }>();
   let biggestOrder: Sale | null = null;
@@ -228,17 +226,13 @@ export function buildDashboardStats(orders: DashboardOrder[], now: Date = new Da
     row.count += 1;
     pay.set(method, row);
 
-    surchargeMonth += Number(s.surcharge_amount ?? 0);
-
-    const ch = s.channel === 'mostrador' ? channels.mostrador : channels.online;
+    const ch = s.price_tier === 'revendedor' ? channels.revendedor : channels.cliente;
     ch.total += s.amount;
     ch.count += 1;
 
-    if (s.channel !== 'mostrador') {
-      const dl = s.shipping_method === 'envio' ? delivery.envio : delivery.retiro;
-      dl.total += s.amount;
-      dl.count += 1;
-    }
+    const dl = s.shipping_method === 'envio' ? delivery.envio : delivery.retiro;
+    dl.total += s.amount;
+    dl.count += 1;
 
     const date = startOfDay(new Date(s.ts));
     const k = dayKey(date);
@@ -266,7 +260,6 @@ export function buildDashboardStats(orders: DashboardOrder[], now: Date = new Da
     bestWeekday,
     topProducts,
     payments,
-    surchargeMonth,
     channels,
     delivery,
     bestDay,

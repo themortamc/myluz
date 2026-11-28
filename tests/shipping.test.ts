@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { billableWeightKg, calculateShipping, correoPrice, resolveZone, ShippingError } from '../lib/shipping';
+import { billableWeightKg, calculateShipping, correoPrice, quoteMendoza, resolveZone, ShippingError, SOLO_MENDOZA_MSG } from '../lib/shipping';
 
 describe('zona de envío', () => {
   it('sale de la provincia (con o sin tildes)', () => {
@@ -43,5 +43,21 @@ describe('precio de Correo', () => {
   it('cotiza domicilio y sucursal para Mendoza', () => {
     const q = calculateShipping({ postalCode: '5500', province: 'Mendoza', items: [{ quantity: 1, weightKg: 0.4 }] });
     expect(q).toEqual({ zone: 2, weightKg: 0.4, domicilio: 10340, sucursal: 7120 });
+  });
+});
+
+describe('Myluz: envíos solo a Mendoza', () => {
+  const items = [{ quantity: 1, weightKg: 1 }];
+  it('cotiza un CP de Mendoza en zona 2', () => {
+    const q = quoteMendoza('5577', items);
+    expect(q.zone).toBe(2);
+    expect(q.domicilio).toBeGreaterThan(0);
+    expect(quoteMendoza('M5500ABC', items).zone).toBe(2);
+  });
+  it('rechaza otras provincias y CP inválidos', () => {
+    expect(() => quoteMendoza('1000', items)).toThrow(SOLO_MENDOZA_MSG);
+    expect(() => quoteMendoza('5700', items)).toThrow(SOLO_MENDOZA_MSG);
+    expect(() => quoteMendoza('B5577ABC', items)).toThrow(SOLO_MENDOZA_MSG);
+    expect(() => quoteMendoza('55', items)).toThrow(/inválido/);
   });
 });

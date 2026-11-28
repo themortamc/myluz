@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Check, Truck, Store, CreditCard, Lock, Landmark, Banknote, Loader2 } from 'lucide-react';
 import { StoreLayout } from '@/components/store-layout';
 import { Button } from '@/components/ui/button';
@@ -17,13 +16,14 @@ import { useCart, cartLineKey } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { WHATSAPP_NUMBER, TRANSFER_ALIAS, TRANSFER_HOLDER } from '@/lib/contact';
-import { fetchSurcharges, onlineSurchargePercent, SURCHARGE_METHODS, DEFAULT_SURCHARGES, type SurchargeMap } from '@/lib/surcharges';
+import { DEFAULT_RULES, envioGratis, rulesFromSettings, unitPrice, valorCuota, type StoreRules } from '@/lib/pricing';
+import { supabase } from '@/lib/supabase';
 import { ReceiptUploader } from '@/components/receipt-uploader';
 import { CdnImg } from '@/components/cdn-img';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, total, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -38,10 +38,9 @@ export default function CheckoutPage() {
     shipping_service: 'domicilio' as 'domicilio' | 'sucursal',
     address: '',
     city: '',
-    province: '',
     postal_code: '',
     notes: '',
-    // 'mercadopago_tarjeta' | 'gocuotas' | 'transferencia' | 'efectivo'
+    // 'mercadopago_tarjeta' | 'transferencia' | 'efectivo'
     payment_method: 'mercadopago_tarjeta',
   });
 
@@ -50,38 +49,17 @@ export default function CheckoutPage() {
   const [paidTotal, setPaidTotal] = useState<number | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
-  const [surcharges, setSurcharges] = useState<SurchargeMap>(DEFAULT_SURCHARGES);
+  const [rules, setRules] = useState<StoreRules>(DEFAULT_RULES);
 
+  // Descuento, cuotas y envío gratis configurados en el panel (store_settings).
   useEffect(() => {
-    fetchSurcharges().then(setSurcharges);
+    supabase
+      .from('store_settings')
+      .select('descuento_contado, cuotas_sin_interes, envio_gratis_desde')
+      .maybeSingle()
+      .then(({ data }) => setRules(rulesFromSettings(data)));
   }, []);
 
-  const ARGENTINE_PROVINCES = [
-    'Buenos Aires',
-    'Ciudad Autónoma de Buenos Aires',
-    'Catamarca',
-    'Chaco',
-    'Chubut',
-    'Córdoba',
-    'Corrientes',
-    'Entre Ríos',
-    'Formosa',
-    'Jujuy',
-    'La Pampa',
-    'La Rioja',
-    'Mendoza',
-    'Misiones',
-    'Neuquén',
-    'Río Negro',
-    'Salta',
-    'San Juan',
-    'San Luis',
-    'Santa Cruz',
-    'Santa Fe',
-    'Santiago del Estero',
-    'Tierra del Fuego',
-    'Tucumán',
-  ];
 
   // Líneas del carrito tal como las recibe el servidor: solo ids y
   // cantidades. Precios, peso y envío los saca el servidor de la base.
@@ -94,7 +72,7 @@ export default function CheckoutPage() {
   // que lleguen tarde de una consulta ya reemplazada.
   useEffect(() => {
     const cp = form.postal_code.trim();
-    if (form.shipping_method !== 'envio' || cp.length < 4 || !form.province || cartLines.length === 0) {
+    if (form.shipping_method !== 'envio' || cp.length < 4 || cartLines.length === 0) {
       setShippingQuote(null);
       setCalculatingShipping(false);
       setShippingError(null);
@@ -111,7 +89,7 @@ export default function CheckoutPage() {
         const res = await fetch('/api/shipping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ postalCode: cp, province: form.province, items: cartLines }),
+          body: JSON.stringify({ postalCode: cp, items: cartLines }),
         });
         const data = await res.json();
         if (cancelled) return;
@@ -133,26 +111,29 @@ export default function CheckoutPage() {
       clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.shipping_method, form.postal_code, form.province, cartKey]);
+  }, [form.shipping_method, form.postal_code, cartKey]);
 
   const isMercadoPago = form.payment_method === 'mercadopago_tarjeta';
-  const shippingCost = shippingQuote ? shippingQuote[form.shipping_service] : null;
+  // Precio de cada línea según el medio de pago (lib/pricing.ts): contado con
+  // transferencia/efectivo, lista con tarjeta. El servidor recalcula todo
+  // (y aplica precios de revendedor si corresponde) antes de cobrar.
+  const pago = isMercadoPago ? 'tarjeta' : 'contado';
+  const linePrice = (contado: number) => unitPrice(contado, null, pago, rules).price;
+  const total = items.reduce((s, i) => s + linePrice(i.product.price) * i.quantity, 0);
+  const freeShipping = envioGratis(total, rules);
+  const quotedShipping = shippingQuote ? shippingQuote[form.shipping_service] : null;
+  const shippingCost = quotedShipping === null ? null : freeShipping ? 0 : quotedShipping;
   const actualShippingCost = form.shipping_method === 'envio' ? (shippingCost ?? 0) : 0;
   // Con envío a domicilio no se puede confirmar el pedido hasta tener el costo calculado.
   const shippingReady = form.shipping_method !== 'envio' || (shippingCost !== null && !calculatingShipping);
-  const subtotalWithShipping = total + actualShippingCost;
-  const surchargePercent = onlineSurchargePercent(surcharges, form.payment_method);
-  const surchargeLabel = SURCHARGE_METHODS.online.find((m) => m.key === form.payment_method)?.label ?? 'Recargo';
-  // Aviso de recargo para mostrar en cada método de pago (vacío si no tiene).
-  const surchargeNote = (key: string) => ((surcharges[key] ?? 0) > 0 ? ` Recargo del ${surcharges[key]}%.` : '');
-  const surchargeAmount = Math.round(subtotalWithShipping * (surchargePercent / 100) * 100) / 100;
-  const grandTotal = subtotalWithShipping + surchargeAmount;
+  const grandTotal = total + actualShippingCost;
+  const cuotas = rules.cuotasSinInteres;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
     if (!shippingReady) {
-      setError('Esperá a que se calcule el envío: completá el código postal y la provincia.');
+      setError('Esperá a que se calcule el envío: completá el código postal.');
       return;
     }
 
@@ -160,21 +141,22 @@ export default function CheckoutPage() {
     setError(null);
     setPaymentError(null);
 
-    const isGateway = isMercadoPago || form.payment_method === 'gocuotas';
+    const isGateway = isMercadoPago;
 
     try {
-      // El servidor arma el pedido: recalcula precios, envío, recargo y
-      // total desde la base, guarda el pedido y (si corresponde) crea el
-      // pago en Mercado Pago / GoCuotas. Acá solo se mandan ids, cantidades
-      // y los datos del cliente.
+      // El servidor arma el pedido: recalcula precios, envío y total desde
+      // la base, guarda el pedido y (si es con tarjeta) crea el pago en
+      // Mercado Pago. Acá solo se mandan ids, cantidades y los datos del
+      // cliente. Si hay sesión (revendedor), va el token para sus precios.
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
       const res = await fetch('/api/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
           items: cartLines,
           delivery: form.shipping_method === 'envio' ? form.shipping_service : 'retiro',
           postalCode: form.postal_code,
-          province: form.province,
           city: form.city,
           address: form.address,
           notes: form.notes,
@@ -197,7 +179,7 @@ export default function CheckoutPage() {
 
       clearCart();
       if (data.redirectUrl) {
-        // Mercado Pago / GoCuotas confirman el pago en su webhook; el stock
+        // Mercado Pago confirma el pago en su webhook; el stock
         // se descuenta recién ahí.
         window.location.href = data.redirectUrl;
         return;
@@ -417,6 +399,8 @@ export default function CheckoutPage() {
                       ? 'Calculando...'
                       : shippingCost === null
                       ? '-'
+                      : shippingCost === 0
+                      ? 'Gratis'
                       : formatPrice(shippingCost)}
                   </span>
                 </div>
@@ -440,22 +424,9 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="province">Provincia *</Label>
-                      <Select
-                        value={form.province}
-                        onValueChange={(val) => setForm({ ...form, province: val })}
-                      >
-                        <SelectTrigger id="province">
-                          <SelectValue placeholder="Seleccioná provincia" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ARGENTINE_PROVINCES.map((prov) => (
-                            <SelectItem key={prov} value={prov}>
-                              {prov}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="province">Provincia</Label>
+                      <Input id="province" value="Mendoza" disabled readOnly />
+                      <p className="text-xs text-muted-foreground">Por ahora enviamos solo dentro de Mendoza.</p>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -551,7 +522,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="pago-mp-tarjeta" className="font-medium cursor-pointer">Tarjeta de crédito o débito</Label>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Con Mercado Pago, en 1 pago.{surchargeNote('mercadopago_tarjeta')} Para pagar con el saldo de tu cuenta de Mercado Pago sin recargo, elegí transferencia.
+                      Con Mercado Pago, hasta {cuotas} cuotas sin interés de {formatPrice(valorCuota(grandTotal, cuotas))}.
                     </p>
                   </div>
                 </div>
@@ -576,22 +547,6 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className={cn(
-                  'flex items-start gap-3 rounded-lg border p-4 cursor-pointer transition-colors',
-                  form.payment_method === 'gocuotas' && 'border-primary bg-primary/5'
-                )}>
-                  <RadioGroupItem value="gocuotas" id="pago-gocuotas" className="mt-1" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-primary" />
-                      <Label htmlFor="pago-gocuotas" className="font-medium cursor-pointer">Cuotas sin tarjeta (GoCuotas)</Label>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Pagá en 2, 3 o 4 cuotas con tu tarjeta de débito. Te lleva a un checkout seguro de GoCuotas.{surchargeNote('gocuotas')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className={cn(
                   'flex items-start gap-3 rounded-lg border p-4 transition-colors',
                   form.shipping_method === 'envio' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                   form.payment_method === 'efectivo' && 'border-primary bg-primary/5'
@@ -610,7 +565,7 @@ export default function CheckoutPage() {
                     <p className="text-sm text-muted-foreground mt-1">
                       {form.shipping_method === 'envio'
                         ? 'Solo disponible con retiro en local'
-                        : `Pagás al retirar tu pedido en el local.${surchargeNote('efectivo')}`}
+                        : `Pagás al retirar tu pedido en el local, con ${Math.round(rules.descuentoContado * 100)} % de descuento.`}
                     </p>
                   </div>
                 </div>
@@ -623,12 +578,6 @@ export default function CheckoutPage() {
                 </p>
               )}
 
-              {form.payment_method === 'gocuotas' && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Lock className="h-3 w-3" />
-                  Vas a ser redirigido al checkout de GoCuotas para completar el pago de forma segura.
-                </p>
-              )}
 
               {paymentError && (
                 <p className="text-sm text-destructive">{paymentError}</p>
@@ -658,11 +607,11 @@ export default function CheckoutPage() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {item.quantity}x {formatPrice(item.product.price)}
+                        {item.quantity}x {formatPrice(linePrice(item.product.price))}
                       </p>
                     </div>
                     <span className="text-xs font-semibold shrink-0">
-                      {formatPrice(item.product.price * item.quantity)}
+                      {formatPrice(linePrice(item.product.price) * item.quantity)}
                     </span>
                   </div>
                 ))}
@@ -688,14 +637,6 @@ export default function CheckoutPage() {
                       : formatPrice(shippingCost)}
                   </span>
                 </div>
-                {surchargePercent > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Recargo ({surchargeLabel} {surchargePercent}%)
-                    </span>
-                    <span>{formatPrice(surchargeAmount)}</span>
-                  </div>
-                )}
               </div>
               <Separator />
               <div className="flex justify-between">
@@ -705,7 +646,7 @@ export default function CheckoutPage() {
 
               {form.shipping_method === 'envio' && !shippingReady && !calculatingShipping && (
                 <p className="text-sm text-muted-foreground">
-                  {shippingError ?? 'Completá el código postal y la provincia para calcular el envío.'}
+                  {shippingError ?? 'Completá el código postal para calcular el envío.'}
                 </p>
               )}
 
@@ -719,14 +660,10 @@ export default function CheckoutPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     {isMercadoPago
                       ? 'Redirigiendo a Mercado Pago...'
-                      : form.payment_method === 'gocuotas'
-                      ? 'Redirigiendo a GoCuotas...'
                       : 'Procesando...'}
                   </span>
                 ) : isMercadoPago ? (
                   'Pagar con Mercado Pago'
-                ) : form.payment_method === 'gocuotas' ? (
-                  'Pagar en cuotas con GoCuotas'
                 ) : (
                   'Confirmar pedido'
                 )}

@@ -71,7 +71,6 @@ const PAYMENT_LABEL: Record<string, string> = {
   mercadopago: 'Mercado Pago',
   mercadopago_tarjeta: 'Tarjetas (Mercado Pago)',
   mercadopago_dinero: 'Mercado Pago (dinero en cuenta)',
-  gocuotas: 'GoCuotas',
   otro: 'Otro',
   sin_dato: 'Sin dato',
 };
@@ -294,7 +293,7 @@ export default function DashboardPage() {
   const maxProductUnits = s?.topProducts[0]?.units ?? 0;
   const maxPayment = s?.payments[0]?.total ?? 0;
   const monthTotal = s?.month.current.total ?? 0;
-  const onlineCount = s?.channels.online.count ?? 0;
+  const onlineCount = s?.month.current.count ?? 0;
 
   return (
     <div className="space-y-6">
@@ -474,11 +473,6 @@ export default function DashboardPage() {
                 ratio={share(p.total, maxPayment)}
               />
             ))}
-            {s && s.surchargeMonth > 0 && (
-              <p className="pt-1 text-xs text-muted-foreground">
-                Las ventas incluyen {formatPrice(s.surchargeMonth)} de recargos por medio de pago.
-              </p>
-            )}
           </CardContent>
         </Card>
 
@@ -486,7 +480,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Store className="h-4 w-4 text-primary" />
-              Dónde y cómo te compran
+              Quién te compra y cómo recibe
             </CardTitle>
             <CardDescription className="capitalize">{monthName ? `${monthName}` : ' '}</CardDescription>
           </CardHeader>
@@ -495,21 +489,21 @@ export default function DashboardPage() {
             {s && monthTotal > 0 && (
               <>
                 <BarRow
-                  label="Online"
-                  value={formatPrice(s.channels.online.total)}
-                  sub={plural(s.channels.online.count, 'pedido', 'pedidos')}
-                  ratio={share(s.channels.online.total, monthTotal)}
+                  label="Clientes"
+                  value={formatPrice(s.channels.cliente.total)}
+                  sub={plural(s.channels.cliente.count, 'pedido', 'pedidos')}
+                  ratio={share(s.channels.cliente.total, monthTotal)}
                 />
                 <BarRow
-                  label="Mostrador"
-                  value={formatPrice(s.channels.mostrador.total)}
-                  sub={plural(s.channels.mostrador.count, 'venta', 'ventas')}
-                  ratio={share(s.channels.mostrador.total, monthTotal)}
+                  label="Revendedores"
+                  value={formatPrice(s.channels.revendedor.total)}
+                  sub={plural(s.channels.revendedor.count, 'pedido', 'pedidos')}
+                  ratio={share(s.channels.revendedor.total, monthTotal)}
                 />
                 {onlineCount > 0 && (
                   <div className="space-y-3 border-t pt-3">
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Globe className="h-3 w-3" /> Entrega de los pedidos online
+                      <Globe className="h-3 w-3" /> Entrega de los pedidos
                     </p>
                     <BarRow
                       label="Retiro en el local"
@@ -646,7 +640,7 @@ export default function DashboardPage() {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{o.customer_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDate(o.created_at)} · {o.channel === 'mostrador' ? 'Mostrador' : 'Online'}
+                    {formatDate(o.created_at)} · {o.price_tier === 'revendedor' ? 'Revendedor' : 'Cliente'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

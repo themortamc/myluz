@@ -5,19 +5,20 @@ import { notifyOrderOnce } from '@/lib/server/notify';
 import {
   CheckoutError,
   PAYMENT_METHODS,
-  createGoCuotasCheckout,
   createMercadoPagoPreference,
   getAdminSupabase,
+  getResellerFromRequest,
   quoteCheckout,
   type Delivery,
   type PaymentMethod,
 } from '@/lib/server/checkout';
 
-// Crea el pedido online. Precios, envío, recargo y total se calculan acá
-// desde la base (ver lib/server/checkout.ts); del navegador solo se toman
-// ids, cantidades y datos del cliente/entrega. El pedido lo inserta el
-// servidor con la service role (la tabla orders ya no acepta inserts
-// anónimos).
+// Crea el pedido online. Precios, envío y total se calculan acá desde la
+// base (ver lib/server/checkout.ts); del navegador solo se toman ids,
+// cantidades y datos del cliente/entrega. Si viene la sesión de un
+// revendedor aprobado (header Authorization), se cobran sus precios. El
+// pedido lo inserta el servidor con la service role (orders no acepta
+// inserts desde el navegador).
 
 const DELIVERIES: Delivery[] = ['retiro', 'domicilio', 'sucursal'];
 
@@ -42,14 +43,14 @@ export async function POST(request: Request) {
     const notes = text(body.notes, 1000);
     const city = text(body.city, 120);
     const address = text(body.address, 200);
-    const province = text(body.province, 60);
     const postalCode = text(body.postalCode, 12).toUpperCase();
     if (!customerName) throw new CheckoutError('Completá tu nombre.');
     if (delivery !== 'retiro' && !city) throw new CheckoutError('Completá la ciudad o localidad.');
     if (delivery === 'domicilio' && !address) throw new CheckoutError('Completá la dirección de envío.');
 
     const db = await getAdminSupabase();
-    const quote = await quoteCheckout(db, { items: body.items, delivery, postalCode, province, paymentMethod });
+    const reseller = await getResellerFromRequest(db, request);
+    const quote = await quoteCheckout(db, { items: body.items, delivery, postalCode, paymentMethod, resellerId: reseller?.id });
     if (quote.total <= 0) throw new CheckoutError('Pedido inválido.');
 
     const orderId = crypto.randomUUID();
@@ -58,11 +59,11 @@ export async function POST(request: Request) {
 
     const order: Record<string, unknown> = {
       id: orderId,
+      customer_id: reseller?.id ?? null,
       customer_name: customerName,
-      customer_email: customerEmail || null,
-      customer_phone: customerPhone || null,
+      customer_email: customerEmail || reseller?.email || null,
+      customer_phone: customerPhone || reseller?.telefono || null,
       status: 'pendiente',
-      channel: 'online',
       payment_method: paymentMethod,
       payment_status: 'pendiente',
       shipping_method: delivery === 'retiro' ? 'retiro' : 'envio',
@@ -70,14 +71,15 @@ export async function POST(request: Request) {
       shipping_cost: quote.shippingCost,
       address:
         delivery === 'domicilio'
-          ? `${address}, ${city}, ${province} (CP: ${postalCode})`
+          ? `${address}, ${city}, Mendoza (CP: ${postalCode})`
           : delivery === 'sucursal'
-          ? `Retira en sucursal de Correo Argentino: ${city}, ${province} (CP: ${postalCode})`
+          ? `Retira en sucursal de Correo Argentino: ${city}, Mendoza (CP: ${postalCode})`
           : null,
-      city: delivery === 'retiro' ? null : `${city} (${province})`,
+      city: delivery === 'retiro' ? null : `${city} (Mendoza)`,
       notes: notes || null,
+      price_tier: quote.priceTier,
+      installments: quote.installments,
       total: quote.total,
-      surcharge_amount: quote.surchargeAmount,
       items: quote.lines,
     };
 
@@ -92,7 +94,6 @@ export async function POST(request: Request) {
         accessToken,
         orderId,
         quote,
-        variant: 'tarjeta',
         siteUrl,
         payer,
       });
@@ -103,21 +104,6 @@ export async function POST(request: Request) {
       }
       // El stock se descuenta recién cuando el webhook confirma el pago.
       return NextResponse.json({ success: true, orderId, total: quote.total, redirectUrl: initPoint });
-    }
-
-    if (paymentMethod === 'gocuotas') {
-      const email = await getServerEnv('GOCUOTAS_EMAIL');
-      const password = await getServerEnv('GOCUOTAS_PASSWORD');
-      if (!email || !password) {
-        throw new CheckoutError('El pago en cuotas con GoCuotas no está configurado todavía. Elegí otro método de pago.', 501);
-      }
-      const { initUrl } = await createGoCuotasCheckout({ email, password, orderId, total: quote.total, siteUrl, payer });
-      const { error } = await db.from('orders').insert(order);
-      if (error) {
-        console.error('No se pudo guardar el pedido (GoCuotas):', error);
-        throw new CheckoutError('Ocurrió un error al guardar el pedido. Intentá nuevamente.', 500);
-      }
-      return NextResponse.json({ success: true, orderId, total: quote.total, redirectUrl: initUrl });
     }
 
     // Efectivo / transferencia: pedido firme, el stock se descuenta ya.
